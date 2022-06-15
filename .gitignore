@@ -1,4 +1,5 @@
 # Byte-compiled / optimized / DLL files
+*.mypy_cache
 __pycache__/
 *.py[cod]
 *$py.class
@@ -127,3 +128,17 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Visual studio
+*.DSstore
+*.vscode
+
+*data
+*runs
+*logs
+
+notes.py
+tmp.py
+Q.txt
+
+*config.yaml

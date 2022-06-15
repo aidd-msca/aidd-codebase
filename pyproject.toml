@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "aidd-codebase"
+version = "0.1.0"
+description = "High-level codebase for deep learning development in drug discovery."
+authors = ["Peter Hartog <peter.hartog@hotmail.nl>", "Emma Svensson <svensson@ml.jku.at>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/AIDD-ESR1/AIDD-codebase"
+repository = "https://github.com/AIDD-ESR1/AIDD-codebase"
+keywords = ["aidd", "drug discovery", "deep learning"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: GPU :: NVIDIA CUDA :: 11.4",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+include = [
+    "LICENSE",
+]
+
+[tool.poetry.dependencies]
+# Mandatory dependencies
+python = "^3.7"
+
+# A list of all of the optional dependencies, some of which are included in the
+# below `extras`. They can be opted into by apps.
+tensorboard = { version = "^2.6", optional = true }
+wandb = { version = "^0.12.16", optional = true }
+
+#[tool.poetry.extras]
+#tensorboard = ["tensorboard"]
+#wandb = ["wandb"]
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
