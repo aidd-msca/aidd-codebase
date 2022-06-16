@@ -67,4 +67,5 @@ class BasicDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        return (self.input[idx], self.output[idx])
+        return self.input[idx], self.output[idx]
+
