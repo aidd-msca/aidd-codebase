@@ -1,7 +1,7 @@
 # AIDD Codebase
 
-![PyPI](https://img.shields.io/pypi/v/flake8-markdown.svg)
-![PyPI](https://img.shields.io/pypi/pyversions/flake8-markdown.svg)
+![PyPI](https://img.shields.io/pypi/v/aidd-codebase)
+![PyPI](https://img.shields.io/pypi/pyversions/aidd-codebase)
 ![PyPI](https://img.shields.io/github/license/AIDD-ESR1/AIDD-codebase)
 
 A high-level codebase for deep learning development in drug discovery applications using PyTorch-Lightning.
