@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 
-from datachoice import DataChoice
+from ..datamodules.datachoice import DataChoice
 from ..utils.config import _ABCDataClass
 from ..utils.metacoding import CreditType
 from ..data_utils.datasets import BasicDataset
