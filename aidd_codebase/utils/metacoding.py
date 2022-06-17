@@ -3,6 +3,8 @@ from abc import abstractclassmethod
 from enum import Enum, auto
 from typing import Any, Callable, Dict, Optional, Tuple
 
+from .config import _ABCDataClass
+
 
 class Singleton:
     _instance = None
@@ -20,15 +22,31 @@ class CreditType(Enum):
 
 
 class Accreditation(Singleton):
-    accreditations: Dict[str, Tuple[str, CreditType]] = {}
-    called_creditations: Dict[str, Tuple[str, CreditType]] = {}
+    accreditations: Dict[
+        str,
+        Tuple[Tuple[Optional[str], Optional[str], Optional[str]], CreditType],
+    ] = {}
+    called_creditations: Dict[
+        str,
+        Tuple[Tuple[Optional[str], Optional[str], Optional[str]], CreditType],
+    ] = {}
 
     def register_accreditation(
-        self, call_name: str, accreditation: str, credit_type: CreditType
+        self,
+        call_name: str,
+        author: str = None,
+        github_handle: str = None,
+        additional_information: str = None,
+        credit_type: CreditType = CreditType.NONE,
     ) -> None:
-        self.accreditations[call_name] = (accreditation, credit_type)
+        self.accreditations[call_name] = (
+            (author, github_handle, additional_information),
+            credit_type,
+        )
 
-    def get_accreditation(self, call_name: str) -> Tuple[str, CreditType]:
+    def get_accreditation(
+        self, call_name: str
+    ) -> Tuple[Tuple[Optional[str], Optional[str], Optional[str]], CreditType]:
         return self.accreditations[call_name]
 
     def notice_accreditation(self, call_name: str) -> None:
@@ -45,7 +63,12 @@ class Accreditation(Singleton):
     def choice_called(self, call_name: str) -> None:
         self.notice_accreditation(call_name)
 
-    def return_accreditations(self) -> Dict[str, Tuple[str, CreditType]]:
+    def return_accreditations(
+        self,
+    ) -> Dict[
+        str,
+        Tuple[Tuple[Optional[str], Optional[str], Optional[str]], CreditType],
+    ]:
         return self.called_creditations
 
 
@@ -53,23 +76,30 @@ class DictChoiceFactory:
     """Factory to generate a dictionary choice class"""
 
     dict_choice: Dict[str, Callable] = {}
+    choice_arguments: Dict[str, _ABCDataClass] = {}
     accreditation: Accreditation = Accreditation()
 
     @classmethod
     def register_choice(
         cls,
         call_name: str,
-        accreditation: Optional[str],
-        credit_type: Optional[CreditType],
-    ):
+        author: Optional[str] = None,
+        github_handle: Optional[str] = None,
+        additional_information: Optional[str] = None,
+        credit_type: CreditType = CreditType.NONE,
+    ) -> Callable:
         """Registers choices by string with a decorator.
         Optional: registers accreditation.
         """
 
         def wrapper(callable_cls: Any) -> Any:
-            if accreditation and credit_type:
+            if author or github_handle or additional_information:
                 cls.accreditation.register_accreditation(
-                    call_name, accreditation, credit_type
+                    call_name,
+                    author,
+                    github_handle,
+                    additional_information,
+                    credit_type,
                 )
             cls.dict_choice[call_name] = callable_cls
             return callable_cls
@@ -81,17 +111,35 @@ class DictChoiceFactory:
         cls,
         call_name: str,
         callable_cls: Any,
-        accreditation: Optional[str],
-        credit_type: Optional[CreditType],
+        author: Optional[str] = None,
+        github_handle: Optional[str] = None,
+        additional_information: Optional[str] = None,
+        credit_type: CreditType = CreditType.NONE,
     ) -> Any:
         """Registers choices by string directly.
         Optional: registers accreditation.
         """
-        if accreditation and credit_type:
+        if author or github_handle or additional_information:
             cls.accreditation.register_accreditation(
-                call_name, accreditation, credit_type
+                call_name,
+                author,
+                github_handle,
+                additional_information,
+                credit_type,
             )
         cls.dict_choice[call_name] = callable_cls
+
+    @classmethod
+    def register_arguments(cls, call_name: str) -> Callable:
+        def wrapper(argument_class: _ABCDataClass) -> Any:
+            cls.choice_arguments[call_name] = argument_class
+            return argument_class
+
+        return wrapper
+
+    @classmethod
+    def get_arguments(cls, call_name: str) -> _ABCDataClass:
+        return cls.choice_arguments[call_name]
 
     @abstractclassmethod
     def get_choice(cls, call_name: str) -> Callable:
@@ -114,5 +162,10 @@ class DictChoiceFactory:
             raise ValueError(f"{call_name} is not recognized.")
 
     @classmethod
-    def choice_accreditations(cls) -> Dict[str, Tuple[str, CreditType]]:
+    def view_accreditations(
+        cls,
+    ) -> Dict[
+        str,
+        Tuple[Tuple[Optional[str], Optional[str], Optional[str]], CreditType],
+    ]:
         return cls.accreditation.return_accreditations()
