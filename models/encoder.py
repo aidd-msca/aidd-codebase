@@ -13,72 +13,61 @@ from .modelchoice import ModelChoice
 from .modules.modules import WeightSharingEncoder
 
 
-@ModelChoice.register_arguments("pl_encoder")
+@ModelChoice.register_arguments(call_name="pl_encoder")
 class EncoderArguments(_ABCDataClass):
-    NAME: str = "pl_encoder"
+    src_vocab_size = 112
+    num_encoder_layers = 3
+    emb_size = 512
+    num_heads = 8
+    dim_feedforward = 512
+    dropout: float = 0.1
+    weight_sharing: bool = False
+    max_seq_len: Optional[int] = None
 
-    SHARE_WEIGHT: bool = False
-
-    EMB_SIZE: int = 512
-
-    NHEAD: int = 8
-    DROPOUT: float = 0.1
-    FFN_HID_DIM: int = 512
-    NUM_ENCODER_LAYERS: int = 3
-    NUM_DECODER_LAYERS: int = 3
-
-
-@ModelChoice.register_choice("pl_encoder", "Peter Hartog", CreditType.NONE)
+@ModelChoice.register_choice(call_name="pl_encoder", author="Peter Hartog", github_handle="PeterHartog", credit_type=CreditType.NONE)
 class Encoder(pl.LightningModule):
     def __init__(
         self,
-        src_vocab_size: int,
-        num_encoder_layers: int,
-        emb_size: int,
-        num_heads: int,
-        dim_feedforward: int,
-        dropout: float = 0.1,
-        weight_sharing: bool = False,
-        max_seq_len: Optional[int] = None,
+        model_args: EncoderArguments
     ) -> None:
         super().__init__()
 
         self.save_hyperparameters()
 
-        self.src_vocab_size = src_vocab_size
-        self.num_encoder_layers = num_encoder_layers
-        self.emb_size = emb_size
-        self.num_heads = num_heads
-        self.dim_feedforward = dim_feedforward
-        self.dropout = dropout
+        self.src_vocab_size = model_args.src_vocab_size
+        self.num_encoder_layers = model_args.num_encoder_layers
+        self.emb_size = model_args.emb_size
+        self.num_heads = model_args.num_heads
+        self.dim_feedforward = model_args.dim_feedforward
+        self.dropout = model_args.dropout
 
         self.positional_encoding = SequencePositionalEncoding(
-            emb_size=emb_size, dropout=dropout, maxlen=max_seq_len
+            emb_size=model_args.emb_size, dropout=model_args.dropout, maxlen=model_args.max_seq_len
         )
         self.src_tok_emb = TokenEmbedding(
-            vocab_size=src_vocab_size, emb_size=emb_size
+            vocab_size=model_args.src_vocab_size, emb_size=model_args.emb_size
         )
 
-        norm = nn.LayerNorm(emb_size)
+        norm = nn.LayerNorm(model_args.emb_size)
 
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model=emb_size,
-            nhead=num_heads,
-            dim_feedforward=dim_feedforward,
-            dropout=dropout,
+            d_model=model_args.emb_size,
+            nhead=model_args.num_heads,
+            dim_feedforward=model_args.dim_feedforward,
+            dropout=model_args.dropout,
             activation=F.relu,
         )
 
-        if weight_sharing:
+        if model_args.weight_sharing:
             self.encoder = WeightSharingEncoder(
                 encoder_layer=encoder_layer,
-                num_layers=num_encoder_layers,
+                num_layers=model_args.num_encoder_layers,
                 norm=norm,
             )
         else:
             self.encoder = nn.TransformerEncoder(
                 encoder_layer=encoder_layer,
-                num_layers=num_encoder_layers,
+                num_layers=model_args.num_encoder_layers,
                 norm=norm,
             )
 

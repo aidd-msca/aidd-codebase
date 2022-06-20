@@ -12,7 +12,7 @@ from .encoder import Encoder
 from .modelchoice import ModelChoice
 
 
-@ModelChoice.register_arguments("pl_seq2seq")
+@ModelChoice.register_arguments(call_name="pl_seq2seq")
 class Seq2SeqArguments(_ABCDataClass):
     src_vocab_size: int = 112
     tgt_vocab_size: int = 112
@@ -27,49 +27,39 @@ class Seq2SeqArguments(_ABCDataClass):
     max_seq_len: Optional[int] = None
 
 
-@ModelChoice.register_choice("pl_seq2seq", "Peter Hartog", CreditType.NONE)
+@ModelChoice.register_choice(call_name="pl_seq2seq", author="Peter Hartog", github_handle="PeterHartog", credit_type=CreditType.NONE)
 class Seq2Seq(pl.LightningModule):
     def __init__(
         self,
-        src_vocab_size: int,
-        tgt_vocab_size: int,
-        num_encoder_layers: int,
-        num_decoder_layers: int,
-        emb_size: int,
-        num_heads: int,
-        dim_feedforward: int = 512,
-        dropout: float = 0.1,
-        weight_sharing: bool = False,
-        pad_idx: Optional[int] = None,
-        max_seq_len: Optional[int] = None,
+        model_args: Seq2SeqArguments
     ) -> None:
         super().__init__()
 
         self.save_hyperparameters(ignore=["Encoder"])
 
-        self.pad_idx = pad_idx
+        self.pad_idx = model_args.pad_idx
 
         self.encoder = Encoder(
-            src_vocab_size=src_vocab_size,
-            num_encoder_layers=num_encoder_layers,
-            emb_size=emb_size,
-            num_heads=num_heads,
-            dim_feedforward=dim_feedforward,
-            dropout=dropout,
-            weight_sharing=weight_sharing,
-            max_seq_len=max_seq_len,
+            src_vocab_size=model_args.src_vocab_size,
+            num_encoder_layers=model_args.num_encoder_layers,
+            emb_size=model_args.emb_size,
+            num_heads=model_args.num_heads,
+            dim_feedforward=model_args.dim_feedforward,
+            dropout=model_args.dropout,
+            weight_sharing=model_args.weight_sharing,
+            max_seq_len=model_args.max_seq_len,
         )
         self.decoder = Decoder(
-            tgt_vocab_size=tgt_vocab_size,
-            num_decoder_layers=num_decoder_layers,
-            emb_size=emb_size,
-            num_heads=num_heads,
-            dim_feedforward=dim_feedforward,
-            dropout=dropout,
-            weight_sharing=weight_sharing,
-            max_seq_len=max_seq_len,
+            tgt_vocab_size=model_args.tgt_vocab_size,
+            num_decoder_layers=model_args.num_decoder_layers,
+            emb_size=model_args.emb_size,
+            num_heads=model_args.num_heads,
+            dim_feedforward=model_args.dim_feedforward,
+            dropout=model_args.dropout,
+            weight_sharing=model_args.weight_sharing,
+            max_seq_len=model_args.max_seq_len,
         )
-        self.fc_out = nn.Linear(emb_size, tgt_vocab_size)
+        self.fc_out = nn.Linear(model_args.emb_size, model_args.tgt_vocab_size)
 
     # (ignore mypy error using type: ignore)
     def forward(  # type: ignore
