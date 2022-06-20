@@ -29,36 +29,15 @@ class Seq2SeqArguments(_ABCDataClass):
 
 @ModelChoice.register_choice(call_name="pl_seq2seq", author="Peter Hartog", github_handle="PeterHartog", credit_type=CreditType.NONE)
 class Seq2Seq(pl.LightningModule):
-    def __init__(
-        self,
-        model_args: Seq2SeqArguments
-    ) -> None:
+    def __init__(self, model_args: Seq2SeqArguments) -> None:
         super().__init__()
 
-        self.save_hyperparameters(ignore=["Encoder"])
+        self.save_hyperparameters()
 
         self.pad_idx = model_args.pad_idx
 
-        self.encoder = Encoder(
-            src_vocab_size=model_args.src_vocab_size,
-            num_encoder_layers=model_args.num_encoder_layers,
-            emb_size=model_args.emb_size,
-            num_heads=model_args.num_heads,
-            dim_feedforward=model_args.dim_feedforward,
-            dropout=model_args.dropout,
-            weight_sharing=model_args.weight_sharing,
-            max_seq_len=model_args.max_seq_len,
-        )
-        self.decoder = Decoder(
-            tgt_vocab_size=model_args.tgt_vocab_size,
-            num_decoder_layers=model_args.num_decoder_layers,
-            emb_size=model_args.emb_size,
-            num_heads=model_args.num_heads,
-            dim_feedforward=model_args.dim_feedforward,
-            dropout=model_args.dropout,
-            weight_sharing=model_args.weight_sharing,
-            max_seq_len=model_args.max_seq_len,
-        )
+        self.encoder = Encoder(model_args=model_args)
+        self.decoder = Decoder(model_args=model_args)
         self.fc_out = nn.Linear(model_args.emb_size, model_args.tgt_vocab_size)
 
     # (ignore mypy error using type: ignore)
