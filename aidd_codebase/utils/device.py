@@ -19,7 +19,8 @@ class Device:
             self.precision = 32
             self.gpus = None
         elif self.device.startswith("cuda") and torch.cuda.is_available():
-            self.torch_device = torch.device("cuda")
+            print("we are here")
+            self.torch_device = torch.cuda.device("cuda")
             self.accelerator = "gpu"
 
             if torch.cuda.device_count() == 1:
