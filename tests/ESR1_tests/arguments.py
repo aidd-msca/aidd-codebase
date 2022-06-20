@@ -29,6 +29,13 @@ class EnvironmentArguments(_ABCDataClass):
     LOG_WANDB: bool = False
     LOG_MLFLOW: bool = False
 
+    NAME: str = "model"
+
+    NUM_EPOCHS: int = 100
+    BATCH_SIZE: int = 128
+    LOAD_PREVIOUS: bool = False
+    MODEL_LOAD_PATH: Optional[str] = None
+
 
 @dataclass
 class DataArguments(_ABCDataClass):

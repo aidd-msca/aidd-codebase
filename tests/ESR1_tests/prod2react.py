@@ -1,6 +1,6 @@
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
 import pathlib
 
@@ -46,7 +46,7 @@ def main():
         "model": ModelChoice.get_arguments("pl_seq2seq"),
         "token": TokenArguments(),
     }
-    
+
     config = Config()
 
     config.dataclass_config_override(dataclasses.values())
@@ -64,7 +64,7 @@ def main():
         precision=config.PRECISION,
     )
     device.display()
-    
+
     # Load data
     tokenizer = Tokenizer(
         vocab=config.VOCAB,

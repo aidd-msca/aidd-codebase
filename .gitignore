@@ -139,4 +139,4 @@ dmypy.json
 *logs
 *ESR1
 *train.sh
-*config.yaml
+tests/ESR2_tests/config.yaml

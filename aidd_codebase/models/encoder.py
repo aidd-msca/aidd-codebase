@@ -1,8 +1,8 @@
 from typing import Optional
 
-import pytorch_lightning as pl
 import torch.nn as nn
 import torch.nn.functional as F
+import pytorch_lightning as pl
 
 from ..utils.config import _ABCDataClass
 from ..utils.metacoding import CreditType
@@ -23,6 +23,7 @@ class EncoderArguments(_ABCDataClass):
     dropout: float = 0.1
     weight_sharing: bool = False
     max_seq_len: Optional[int] = None
+
 
 @ModelChoice.register_choice(call_name="pl_encoder", author="Peter Hartog", github_handle="PeterHartog", credit_type=CreditType.NONE)
 class Encoder(pl.LightningModule):
@@ -55,7 +56,7 @@ class Encoder(pl.LightningModule):
             nhead=model_args.num_heads,
             dim_feedforward=model_args.dim_feedforward,
             dropout=model_args.dropout,
-            activation=F.relu,
+            activation='relu',
         )
 
         if model_args.weight_sharing:
