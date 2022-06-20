@@ -1,7 +1,7 @@
+from subprocess import call
 from typing import Optional
 
 import pytorch_lightning as pl
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -11,49 +11,53 @@ from ..utils.typescripts import Tensor
 from .embedding.embedding import TokenEmbedding
 from .embedding.positional import SequencePositionalEncoding
 from .modelchoice import ModelChoice
-from .modules.modules import WeightSharingDecoder, WeightSharingEncoder
+from .modules.modules import WeightSharingDecoder
 
 
-@ModelChoice.register_choice("pl_decoder", "Peter Hartog", CreditType.NONE)
+@ModelChoice.register_arguments(call_name="pl_decoder")
+class DecoderArguments(_ABCDataClass):
+    tgt_vocab_size = 112
+    num_decoder_layers = 3
+    emb_size = 512
+    num_heads = 8
+    dim_feedforward = 512
+    dropout: float = 0.1
+    weight_sharing: bool = False
+    max_seq_len: Optional[int] = None
+
+@ModelChoice.register_choice(call_name="pl_decoder", author="Peter Hartog", github_handle="PeterHartog", credit_type=CreditType.NONE)
 class Decoder(pl.LightningModule):
     def __init__(
         self,
-        tgt_vocab_size: int,
-        num_decoder_layers: int,
-        emb_size: int,
-        num_heads: int,
-        dim_feedforward: int,
-        dropout: float = 0.1,
-        weight_sharing: bool = False,
-        max_seq_len: Optional[int] = None,
+        model_args: DecoderArguments,
     ) -> None:
         super().__init__()
 
         self.positional_encoding = SequencePositionalEncoding(
-            emb_size=emb_size, dropout=dropout, maxlen=max_seq_len
+            emb_size=model_args.emb_size, dropout=model_args.dropout, maxlen=model_args.max_seq_len
         )
         self.tgt_tok_emb = TokenEmbedding(
-            vocab_size=tgt_vocab_size, emb_size=emb_size
+            vocab_size=model_args.tgt_vocab_size, emb_size=model_args.emb_size
         )
-        norm = nn.LayerNorm(emb_size)
+        norm = nn.LayerNorm(model_args.emb_size)
         decoder_layer = nn.TransformerDecoderLayer(
-            d_model=emb_size,
-            nhead=num_heads,
-            dim_feedforward=dim_feedforward,
-            dropout=dropout,
+            d_model=model_args.emb_size,
+            nhead=model_args.num_heads,
+            dim_feedforward=model_args.dim_feedforward,
+            dropout=model_args.dropout,
             activation=F.relu,
         )
 
-        if weight_sharing:
+        if model_args.weight_sharing:
             self.decoder = WeightSharingDecoder(
                 decoder_layer=decoder_layer,
-                num_layers=num_decoder_layers,
+                num_layers=model_args.num_decoder_layers,
                 norm=norm,
             )
         else:
             self.decoder = nn.TransformerDecoder(
                 decoder_layer=decoder_layer,
-                num_layers=num_decoder_layers,
+                num_layers=model_args.num_decoder_layers,
                 norm=norm,
             )
 
