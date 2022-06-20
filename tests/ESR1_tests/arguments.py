@@ -8,10 +8,15 @@ from aidd_codebase.utils.config import _ABCDataClass
 
 @dataclass
 class EnvironmentArguments(_ABCDataClass):
+    NAME: str = "test"
     DEBUG: bool = False
     STRICT: bool = True
     HOME_DIR: Optional[str] = str(pathlib.Path(__file__).parent.resolve())
 
+    NUM_EPOCHS: int = 100
+    BATCH_SIZE: int = 128
+    LOAD_PREVIOUS: bool = False
+    MODEL_LOAD_PATH: Optional[str] = None
 
     SEED: int = 1234
     PORT: int = 6006

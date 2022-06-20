@@ -6,13 +6,7 @@ import pathlib
 
 import pytorch_lightning as pl
 import torch
-from aidd_codebase.data_utils.augmentation import Enumerator
-from aidd_codebase.data_utils.collate import Collate
-from aidd_codebase.data_utils.dataprocessors import (
-    DataType,
-    ReturnOptions,
-    SmilesProcessor,
-)
+from aidd_codebase.utils.device import Device
 from aidd_codebase.datamodules.datachoice import DataChoice
 from aidd_codebase.data_utils.tokenizer import Tokenizer
 from aidd_codebase.framework.loggers import PL_Loggers
@@ -22,11 +16,10 @@ from aidd_codebase.utils.directories import Directories
 from aidd_codebase.utils.initiator import ParameterInitialization
 from aidd_codebase.models.modelchoice import ModelChoice
 from tests.ESR1_tests.arguments import (
-    DataArguments,
     EnvironmentArguments,
     TokenArguments,
 )
-from tests.ESR1_tests.datamodule import SmilesDataModule
+import tests.ESR1_tests.datamodule
 from tests.ESR1_tests.pl_frameworks import (
     TASK,
     LogitLoss,
@@ -53,40 +46,32 @@ def main():
         "model": ModelChoice.get_arguments("pl_seq2seq"),
         "token": TokenArguments(),
     }
-
-    if not dataclasses["env"].HOME_DIR:
-        dataclasses["env"].HOME_DIR = str(
-            pathlib.Path(__file__).parent.resolve()
-        )
-
+    
     config = Config()
 
     config.dataclass_config_override(dataclasses.values())
-    config.yaml_config_override(f"{config.HOME_DIR}/config.yaml")
-    config.flag_config_override()
+    # config.yaml_config_override(f"{config.HOME_DIR}/config.yaml")
     # config.store_config_yaml(config.HOME_DIR)
     config.print_arguments()
 
+    # Set seed
     pl.seed_everything(config.SEED)
 
-    DEVICE = torch.device(
-        config.DEVICE if torch.cuda.is_available() else "cpu"
+    # Set device
+    device = Device(
+        device=config.DEVICE,
+        multi_gpu=config.MULTI_GPU,
+        precision=config.PRECISION,
     )
-    print(f"\nGPU is available: {torch.cuda.is_available()}")
-    if torch.cuda.is_available():
-        with torch.cuda.device(DEVICE):
-            print(
-                f"Using device {str(torch.cuda.current_device())}"
-                + f"/{str(torch.cuda.device_count())}, "
-                + f"name: {str(torch.cuda.get_device_name(0))}."
-            )
-
+    device.display()
+    
+    # Load data
     tokenizer = Tokenizer(
         vocab=config.VOCAB,
         pad_idx=config.PAD_IDX,
         bos_idx=config.BOS_IDX,
         eos_idx=config.EOS_IDX,
-        max_seq_len=config.MAX_SEQ_LEN,
+        max_seq_len=250, #config.MAX_SEQ_LEN,
     )
 
     datamodule = DataChoice.get_choice("retrosynthesis_pavel")
