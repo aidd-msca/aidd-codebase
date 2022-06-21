@@ -14,6 +14,16 @@ class Singleton:
             cls._instance = super().__new__(cls, *args, **kwargs)
         return cls._instance
 
+class Borg:
+    _dict = None
+
+    def __new__(cls, *args, **kwargs):
+        obj = super().__new__(cls, *args, **kwargs)
+        if cls._dict is None:
+            cls._dict = obj.__dict__
+        else:
+            obj.__dict__ = cls._dict
+        return obj
 
 class CreditType(Enum):
     REFERENCE = auto()

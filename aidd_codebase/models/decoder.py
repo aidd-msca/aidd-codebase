@@ -1,10 +1,9 @@
-from subprocess import call
 from typing import Optional
 
 import pytorch_lightning as pl
 import torch.nn as nn
 import torch.nn.functional as F
-
+from dataclasses import dataclass
 from ..utils.config import _ABCDataClass
 from ..utils.metacoding import CreditType
 from ..utils.typescripts import Tensor
@@ -15,6 +14,7 @@ from .modules.modules import WeightSharingDecoder
 
 
 @ModelChoice.register_arguments(call_name="pl_decoder")
+@dataclass(unsafe_hash=True)
 class DecoderArguments(_ABCDataClass):
     tgt_vocab_size = 112
     num_decoder_layers = 3

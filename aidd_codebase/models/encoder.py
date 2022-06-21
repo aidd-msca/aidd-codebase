@@ -1,5 +1,5 @@
 from typing import Optional
-
+from dataclasses import dataclass
 import pytorch_lightning as pl
 import torch.nn as nn
 import torch.nn.functional as F
@@ -14,6 +14,7 @@ from .modules.modules import WeightSharingEncoder
 
 
 @ModelChoice.register_arguments(call_name="pl_encoder")
+@dataclass(unsafe_hash=True)
 class EncoderArguments(_ABCDataClass):
     src_vocab_size = 112
     num_encoder_layers = 3

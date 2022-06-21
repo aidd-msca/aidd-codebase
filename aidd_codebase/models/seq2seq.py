@@ -1,4 +1,5 @@
 from typing import Optional
+from dataclasses import dataclass
 
 import pytorch_lightning as pl
 import torch
@@ -13,6 +14,7 @@ from .modelchoice import ModelChoice
 
 
 @ModelChoice.register_arguments(call_name="pl_seq2seq")
+@dataclass(unsafe_hash=True)
 class Seq2SeqArguments(_ABCDataClass):
     src_vocab_size: int = 112
     tgt_vocab_size: int = 112

@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 import pandas as pd
 import pytorch_lightning as pl
 import torch
+from dataclasses import dataclass, field
 from aidd_codebase.data_utils.augmentation import Enumerator
 from aidd_codebase.data_utils.tokenizer import Tokenizer
 from aidd_codebase.data_utils.collate import Collate
@@ -20,8 +21,9 @@ from torch.utils.data import DataLoader
 
 
 @DataChoice.register_arguments(call_name="retrosynthesis_pavel")
-class DataArguments(_ABCDataClass):
-    seed: int = 1234
+@dataclass(unsafe_hash=True)
+class DataArguments:
+    seed: int
     batch_size: int = 128
     num_workers: int = 8
     persistent_workers: bool = True
@@ -29,7 +31,7 @@ class DataArguments(_ABCDataClass):
     override_prepared_data: bool = False
     prepared_data_dir: Optional[str] = f"{pathlib.Path(__file__).parent.resolve()}/data/saved"
     
-    partitions: Dict[str, float] = {"train": 0.8, "val": 0.1, "test": 0.1}
+    partitions: Dict[str, float] = field(default_factory= lambda: {"train": 0.8, "val": 0.1, "test": 0.1})
 
     remove_missing: bool = True
     remove_duplicates: bool = False
@@ -56,13 +58,13 @@ class SmilesDataModule(pl.LightningDataModule):
         self.batch_size = data_args.batch_size
         self.num_workers = data_args.num_workers
         self.persistent_workers = data_args.persistent_workers
-        self.collate_fn = Collate(tokenizer.PAD_IDX).simple_collate_fn
+        self.collate_fn = Collate(tokenizer.pad_idx).simple_collate_fn
 
         enumerator = Enumerator(
             enumerations=data_args.enumeration,
             seed=data_args.seed,
             oversample=data_args.enumeration_oversample,
-            max_len=tokenizer.MAX_SEQ_LEN,
+            max_len=tokenizer.max_seq_len,
             keep_original=data_args.canonicalization,
         )
         if data_args.enumeration > 0:
@@ -78,7 +80,7 @@ class SmilesDataModule(pl.LightningDataModule):
             tokenizer=tokenizer,
             remove_duplicates=data_args.remove_duplicates,
             remove_missing=data_args.remove_missing,
-            constrains=[lambda x: x.applymap(len) <= tokenizer.MAX_SEQ_LEN],
+            constrains=[lambda x: x.applymap(len) <= tokenizer.max_seq_len],
             augmentations=augmentations,
         )
         self.output_processor = SmilesProcessor(
@@ -87,7 +89,7 @@ class SmilesDataModule(pl.LightningDataModule):
             tokenizer=tokenizer,
             remove_duplicates=data_args.remove_duplicates,
             remove_missing=data_args.remove_missing,
-            constrains=[lambda x: x.applymap(len) <= tokenizer.MAX_SEQ_LEN],
+            constrains=[lambda x: x.applymap(len) <= tokenizer.max_seq_len],
             augmentations=None,
         )
         
