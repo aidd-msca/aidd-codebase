@@ -1,6 +1,6 @@
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
 import pathlib
 from typing import Optional
@@ -62,7 +62,7 @@ def main():
         "data": DataChoice.get_arguments("retrosynthesis_pavel"),
         "model":ModelChoice.get_arguments("pl_seq2seq"),
     }
-    
+
     config = Config()
     config.dataclass_config_override(data_classes=dataclasses)
     config.yaml_config_override(f"{config.env['HOME_DIR']}/config.yaml")
@@ -83,7 +83,7 @@ def main():
         precision=env_args.PRECISION,
     )
     device.display()
-    
+
     # Load data
     tokenizer = DataChoice.get_choice("sequence_tokenizer")
     tokenizer = tokenizer(token_args)

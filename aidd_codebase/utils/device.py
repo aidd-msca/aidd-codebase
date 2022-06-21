@@ -39,6 +39,7 @@ class Device:
 
     def display(self) -> None:
         print(f"\nGPU is available: {torch.cuda.is_available()}")
+        return
         if torch.cuda.is_available() and self.device.startswith("cuda"):
             with self.torch_device:
                 print(
