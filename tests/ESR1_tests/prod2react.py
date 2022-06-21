@@ -1,6 +1,6 @@
 import os
 
-#os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
 import pathlib
 from typing import Optional
@@ -10,22 +10,21 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-
 from aidd_codebase.utils.metacoding import DictChoiceFactory
 from aidd_codebase.utils.device import Device
 from aidd_codebase.datamodules.datachoice import DataChoice
+from aidd_codebase.framework.loopchoice import LoopChoice
 from aidd_codebase.framework.loggers import PL_Loggers
 from aidd_codebase.utils.config import _ABCDataClass, Config
 from aidd_codebase.utils.directories import Directories
 from aidd_codebase.utils.initiator import ParameterInitialization
 from aidd_codebase.models.modelchoice import ModelChoice
+from aidd_codebase.framework.framework import ModelFramework
+from aidd_codebase.models.optimizers.optimizers import OptimizerChoice
+from aidd_codebase.models.metrics.loss import LossChoice
 import tests.ESR1_tests.datamodule
-from tests.ESR1_tests.pl_frameworks import (
-    TASK,
-    LogitLoss,
-    ModelFramework_old,
-    TopNAccuracy,
-)
+from tests.ESR1_tests.pl_frameworks import LogitLoss
+
 
 #TODO refactor tokenizer into object with class variables
 
@@ -101,25 +100,21 @@ def main():
     if env_args.LOAD_PREVIOUS:
         model = torch.load(env_args.MODEL_LOAD_PATH)
         
-
-
-    framework = ModelFramework_old(
-        task=TASK.TRANSLATION,
-        optimizer=torch.optim.Adam(
-            model.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9
-        ),
-        metrics={
-            "loss": LogitLoss(
-                torch.nn.CrossEntropyLoss(
-                    reduction="mean", ignore_index=tokenizer.pad_idx
-                )
-            ),
-            "accuracy": TopNAccuracy(1),
-            "accuracy_top3": TopNAccuracy(3),
-        },
-        lr=0.0001,
+    loss = LossChoice.get_choice("cross_entropy")
+    loss = LogitLoss(loss(reduction="mean", ignore_index=tokenizer.pad_idx))
+    optimizer = OptimizerChoice.get_choice("adam")
+    optimizer = optimizer(model.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
+    framework = ModelFramework(
+        loss=loss,
+        metrics=None,
+        optimizer=optimizer,
+        scheduler=None,
+        loggers=None,
     )
     framework.set_model(model)
+    
+    loop = LoopChoice.get_choice("pl_seq2seq")
+    framework.set_loop(loop.translation)
 
     directories = Directories(PROJECT=env_args.NAME, HOME_DIR=env_args.HOME_DIR)
     pl_loggers = PL_Loggers(
@@ -142,26 +137,17 @@ def main():
         every_n_epochs=1,
     )
 
-    # saving_callback = CustomSavingCallback(
-    #     model_save_path=directories.MODEL_DIR
-    # )
-
     trainer = pl.Trainer(
         fast_dev_run=env_args.DEBUG,
         max_epochs=env_args.NUM_EPOCHS + 1,
-        accelerator="gpu",
-        gpus=[0],
-        precision=16,
-        # auto_scale_batch_size="binsearch",  # doesn't work yet
+        accelerator=device.accelerator,
+        gpus=device.gpus,
+        precision=device.precision,
         logger=loggers,
         log_every_n_steps=1,
         callbacks=[checkpoint_callback],
         weights_save_path=directories.WEIGHTS_DIR,
     )
-
-    # tune the trainer parameters
-    if trainer.auto_scale_batch_size is not None:
-        trainer.tune(framework)
 
     # train the model
     trainer.fit(framework, datamodule)

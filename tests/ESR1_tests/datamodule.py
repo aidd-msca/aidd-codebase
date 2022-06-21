@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 
 @DataChoice.register_arguments(call_name="retrosynthesis_pavel")
 @dataclass(unsafe_hash=True)
-class DataArguments:
+class DataArguments(_ABCDataClass):
     seed: int
     batch_size: int = 128
     num_workers: int = 8
