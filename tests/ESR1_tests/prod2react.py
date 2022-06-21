@@ -113,7 +113,7 @@ def main():
     )
     framework.set_model(model)
     
-    loop = LoopChoice.get_choice("pl_seq2seq")
+    loop = LoopChoice.get_choice("pl_seq2seq_loops")
     framework.set_loop(loop.translation)
 
     directories = Directories(PROJECT=env_args.NAME, HOME_DIR=env_args.HOME_DIR)
@@ -154,6 +154,9 @@ def main():
 
     # test model
     trainer.test(model=framework, datamodule=datamodule)
+    
+    accreditations = DictChoiceFactory.view_accreditations()
+    print(accreditations)
 
 
 # Example: python main.py --DEVICE cuda:0 --NAME my_run
