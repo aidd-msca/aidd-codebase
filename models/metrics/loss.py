@@ -1,4 +1,5 @@
 from typing import Any
+import torch.nn as nn
 
 from aidd_codebase.utils.metacoding import DictChoiceFactory
 from aidd_codebase.utils.typescripts import Tensor
@@ -9,7 +10,7 @@ class LossChoice(DictChoiceFactory):
 
 
 # Registers choices for loss functions of prebuilt loss functions
-LossChoice.register_prebuilt_choice(call_name="adam", callable_cls=optim.Adam)
+LossChoice.register_prebuilt_choice(call_name="cross_entropy", callable_cls=nn.CrossEntropyLoss)
 
 
 @LossChoice.register_choice("logit_loss")
