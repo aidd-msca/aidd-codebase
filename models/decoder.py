@@ -1,9 +1,9 @@
 from typing import Optional
 
-import pytorch_lightning as pl
 import torch.nn as nn
-import torch.nn.functional as F
+import pytorch_lightning as pl
 from dataclasses import dataclass
+
 from ..utils.config import _ABCDataClass
 from ..utils.metacoding import CreditType
 from ..utils.typescripts import Tensor
@@ -45,7 +45,7 @@ class Decoder(pl.LightningModule):
             nhead=model_args.num_heads,
             dim_feedforward=model_args.dim_feedforward,
             dropout=model_args.dropout,
-            activation=F.relu,
+            activation='relu',
         )
 
         if model_args.weight_sharing:
