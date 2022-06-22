@@ -16,7 +16,7 @@ class ModelFramework(pl.LightningModule):
         optimizer,
         metrics: Optional[List[Metric]] = None,
         scheduler: Optional[Scheduler] = None,
-        loggers: Optional[List[LoggerPL]] = None,
+        pl_loggers: Optional[List[LoggerPL]] = None,
     ) -> None:
         super().__init__()
 
@@ -28,7 +28,7 @@ class ModelFramework(pl.LightningModule):
         self.metrics = metrics
         self.optimizer = optimizer
         self.scheduler = scheduler
-        self.loggers = loggers
+        self.pl_loggers = pl_loggers
 
         self.metrics_list: Dict[str, Metric] = {}
 
@@ -98,8 +98,8 @@ class ModelFramework(pl.LightningModule):
         )
 
     def _log_epoch_metrics(self, metrics: List[Metric]) -> None:
-        if self.loggers:
-            for logger in self.loggers:
+        if self.pl_loggers:
+            for logger in self.pl_loggers:
                 logger.log_scalar(metrics=metrics, epoch=self.current_epoch)
 
     def on_train_start(self) -> None:
