@@ -3,21 +3,26 @@ import torch
 import pytorch_lightning as pl
 from dataclasses import dataclass
 
+from aidd_codebase.utils.metacoding import DictChoiceFactory
 from aidd_codebase.utils.config import Config, _ABCDataClass
 from aidd_codebase.utils.device import Device
 from aidd_codebase.datamodules.datachoice import DataChoice
 from aidd_codebase.models.modelchoice import ModelChoice
-
 from aidd_codebase.framework.framework import ModelFramework
 from aidd_codebase.models.modules.loss import LossChoice
 from aidd_codebase.models.optimizers.optimizers import OptimizerChoice
 from aidd_codebase.utils.initiator import ParameterInitialization
 from aidd_codebase.utils.directories import Directories
+from aidd_codebase.framework.loopchoice import LoopChoice
 from aidd_codebase.framework.loggers import PL_Loggers
-from aidd_codebase.utils.callbacks import CustomSavingCallback
 
 
-@dataclass
+class EnvironmentChoice(DictChoiceFactory):
+    pass
+
+
+@EnvironmentChoice.register_arguments(call_name="ESR2_example")
+@dataclass(unsafe_hash=True)
 class EnvironmentArguments(_ABCDataClass):
     debug: bool = False
     strict: bool = True
@@ -37,7 +42,7 @@ class EnvironmentArguments(_ABCDataClass):
 
 def main():
     args = {
-        "env": EnvironmentArguments(),
+        "env": EnvironmentChoice.get_arguments("ESR2_example"),
         "data": DataChoice.get_arguments('smiles'),
         "model": ModelChoice.get_arguments('pl_seq2seq')
     }
@@ -46,11 +51,12 @@ def main():
     args['data'].data_path = '/home/emma/data/PavelsReactions/raw/retrosynthesis-all.smi'
 
     config = Config()
-
-    config.dataclass_config_override(args.values())
-    #config.yaml_config_override(os.path.join(args['data'].HOME_DIR, '/config.yaml'))
-    #config.store_config_yaml(args['data'].HOME_DIR)
+    config.dataclass_config_override(data_classes=args)
+    config.yaml_config_override(f"{config.data['home_path']}/config.yaml")
     config.print_arguments()
+
+    for arg_key in args.keys():
+        args[arg_key] = config.return_dataclass(arg_key)
 
     device = Device(device=args['env'].device)
     device.display()
@@ -68,9 +74,10 @@ def main():
     param_init = ParameterInitialization(method="xavier")
     model = param_init.initialize_model(model)
 
-    loss = LossChoice.get_choice("cross_entropy")
-    optimizer = OptimizerChoice.get_choice("adam")
-
+    loss = LossChoice.get_choice("cross_entropy")(reduction='mean', ignore_index=0)
+    # loss = LogitLoss(loss(reduction="mean", ignore_index=0))
+    optimizer_choice = OptimizerChoice.get_choice("adam")
+    optimizer = optimizer_choice(model.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
     framework = ModelFramework(
         loss=loss,
         metrics=None,
@@ -79,6 +86,9 @@ def main():
         loggers=None,
     )
     framework.set_model(model)
+
+    loop = LoopChoice.get_choice("pl_seq2seq")
+    framework.set_loop(loop.translation)
 
     directories = Directories(PROJECT=args['env'].name, HOME_DIR=args['data'].home_path)
     pl_loggers = PL_Loggers(
@@ -89,8 +99,6 @@ def main():
     )
     loggers = pl_loggers.return_loggers()
 
-    # saves a file like:
-    # .../runs/name/checkpoints/date/time/model-epoch=02-val_loss=0.32.ckpt
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
         monitor="val_loss",
         dirpath=directories.CHECKPOINT_DIR,
@@ -101,24 +109,22 @@ def main():
         every_n_epochs=1,
     )
 
-    saving_callback = CustomSavingCallback(
-        model_save_path=directories.MODEL_DIR
-    )
-
     trainer = pl.Trainer(
         fast_dev_run=args['env'].debug,
         max_epochs=args['env'].num_epochs + 1,
-        accelerator="gpu",
-        gpus=[0],
-        precision=16,
+        accelerator=device.accelerator,
+        gpus=device.gpus,
+        precision=device.precision,
         logger=loggers,
         log_every_n_steps=1,
-        callbacks=[checkpoint_callback, saving_callback],
+        callbacks=[checkpoint_callback],
         weights_save_path=directories.WEIGHTS_DIR,
     )
 
-    trainer.fit(model=framework, datamodule=datamodule)
+    # train the model
+    trainer.fit(framework, datamodule)
 
+    # test model
     trainer.test(model=framework, datamodule=datamodule)
 
 

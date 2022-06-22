@@ -31,7 +31,7 @@ class DataArguments(_ABCDataClass):
     override_prepared_data: bool = False
     prepared_data_dir: Optional[str] = f"{pathlib.Path(__file__).parent.resolve()}/data/saved"
     
-    partitions: Dict[str, float] = field(default_factory= lambda: {"train": 0.8, "val": 0.1, "test": 0.1})
+    partitions: Dict[str, float] = field(default_factory=lambda: {"train": 0.8, "val": 0.1, "test": 0.1})
 
     remove_missing: bool = True
     remove_duplicates: bool = False

@@ -59,7 +59,7 @@ def main():
         "env": EnvironmentChoice.get_arguments("ESR1_example"),
         "token": DataChoice.get_arguments("sequence_tokenizer"),
         "data": DataChoice.get_arguments("retrosynthesis_pavel"),
-        "model":ModelChoice.get_arguments("pl_seq2seq"),
+        "model": ModelChoice.get_arguments("pl_seq2seq"),
     }
 
     config = Config()
@@ -88,11 +88,11 @@ def main():
     tokenizer = tokenizer(token_args)
 
     datamodule = DataChoice.get_choice("retrosynthesis_pavel")
-    datamodule = datamodule(tokenizer=tokenizer, data_args = data_args)
+    datamodule = datamodule(tokenizer=tokenizer, data_args=data_args)
     
     # Load Model
     model = ModelChoice.get_choice("pl_seq2seq")
-    model = model(model_args = model_args)
+    model = model(model_args=model_args)
     
     param_init = ParameterInitialization(method="xavier")
     model = param_init.initialize_model(model)
