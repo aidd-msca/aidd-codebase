@@ -34,3 +34,4 @@ class Collate:
         """
         src_batch, tgt_batch = zip(*batch)
         return torch.t(torch.stack(src_batch)), torch.t(torch.stack(tgt_batch))
+

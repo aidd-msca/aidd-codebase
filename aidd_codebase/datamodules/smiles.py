@@ -1,7 +1,7 @@
 from abc import ABC
 
 import pandas as pd
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 import torch
 from torch.utils.data import DataLoader
@@ -18,6 +18,7 @@ from aidd_codebase.data_utils.augmentation import Enumerator
 
 
 @DataChoice.register_arguments(call_name="smiles")
+@dataclass(unsafe_hash=True)
 class SmilesArguments(_ABCDataClass):
     num_workers: int = 8
     persistent_workers: bool = True
@@ -29,7 +30,7 @@ class SmilesArguments(_ABCDataClass):
     data_path: Optional[str] = '/content/retrosynthesis-all.smi'
 
     seed = 10
-    partitions: Dict[str, float] = {'train': 0.8, 'valid': 0.1, 'test': 0.1}
+    #partitions: Dict[str, float] = field(default_factory={'train': 0.8, 'valid': 0.1, 'test': 0.1})
 
     remove_missing: bool = True
     remove_duplicates: bool = False
@@ -49,7 +50,7 @@ class SmilesDataModule(pl.LightningDataModule):
         self.data_path = data_args.data_path
         self.reactions = data_args.reactions
 
-        self.partitions = data_args.partitions
+        self.partitions = {'train': 0.8, 'valid': 0.1, 'test': 0.1} # data_args.partitions
         self.datasplit: Dict[str, pd.DataFrame] = {}
 
         self.seed = data_args.seed
@@ -57,21 +58,17 @@ class SmilesDataModule(pl.LightningDataModule):
         self.num_workers = data_args.num_workers
         self.persistent_workers = data_args.persistent_workers
 
-        tokenizer = Tokenizer(
-            vocab=(" ^$?#%()+-./0123456789=@ABCDEFGHIKLMNOPRSTVXYZ[\\]abcdefgilmnoprstuy"),
-            pad_idx=0,
-            bos_idx=1,
-            eos_idx=2,
-            max_seq_len=250
-        )
+        token_args = DataChoice.get_arguments("sequence_tokenizer")
+        tokenizer_choice = DataChoice.get_choice("sequence_tokenizer")
+        tokenizer = tokenizer_choice(token_args)
 
-        self.collator = Collate(tokenizer.PAD_IDX).simple_collate_fn
+        self.collate_fn = Collate(tokenizer.pad_idx).simple_collate_fn
 
         enumerator = Enumerator(
             enumerations=data_args.enumeration,
             seed=data_args.seed,
             oversample=data_args.enumeration_oversample,
-            max_len=tokenizer.MAX_SEQ_LEN,
+            max_len=tokenizer.max_seq_len,
             keep_original=data_args.canonicalization,
         )
         if data_args.enumeration > 0:
@@ -85,7 +82,7 @@ class SmilesDataModule(pl.LightningDataModule):
             tokenizer=tokenizer,
             remove_duplicates=data_args.remove_duplicates,
             remove_missing=data_args.remove_missing,
-            constrains=[lambda x: x.applymap(len) <= tokenizer.MAX_SEQ_LEN],
+            constrains=[lambda x: x.applymap(len) <= tokenizer.max_seq_len],
             augmentations=augmentations,
         ) for source in ['data', 'target']}
 
