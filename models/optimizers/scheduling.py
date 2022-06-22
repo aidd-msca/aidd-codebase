@@ -1,15 +1,13 @@
-from typing import Protocol
-
 import numpy as np
 from torch import optim
 
 
-class SchedulerProtocol(Protocol):
-    def get_lr(self) -> float:
-        """Returns the next learning rate."""
+# class SchedulerProtocol(Protocol):
+#     def get_lr(self) -> float:
+#         """Returns the next learning rate."""
 
-    def step(self, epoch: int) -> None:
-        """Instantiates the optimizer with the lr of the epoch"""
+#     def step(self, epoch: int) -> None:
+#         """Instantiates the optimizer with the lr of the epoch"""
 
 
 class Scheduler:  # optim.lr_sheduler._LRScheduler
