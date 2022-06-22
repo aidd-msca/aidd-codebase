@@ -22,7 +22,7 @@ class TokenArguments(_ABCDataClass):
     vocab: str = (
         " ^$?#%()+-./0123456789=@ABCDEFGHIKLMNOPRSTVXYZ[\\]abcdefgilmnoprstuy"
     )
-    max_seq_len: int = 250 #110
+    max_seq_len: int = 250
 
 @DataChoice.register_choice(call_name="sequence_tokenizer", author="Peter Hartog", github_handle="PeterHartog", credit_type=CreditType.NONE)
 class Tokenizer:
