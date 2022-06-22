@@ -1,22 +1,26 @@
+import pathlib
+from dataclasses import dataclass, field
 from os import listdir
 from os.path import isfile, join
-import pathlib
 from typing import Dict, List, Optional
 
 import pandas as pd
 import pytorch_lightning as pl
 import torch
-from dataclasses import dataclass, field
 from aidd_codebase.data_utils.augmentation import Enumerator
-from aidd_codebase.data_utils.tokenizer import Tokenizer
 from aidd_codebase.data_utils.collate import Collate
-from aidd_codebase.utils.config import _ABCDataClass
-from aidd_codebase.datamodules.datachoice import DataChoice
-from aidd_codebase.utils.metacoding import CreditType
-from aidd_codebase.data_utils.dataprocessors import _AbsProcessor, DataType, ReturnOptions, SmilesProcessor
+from aidd_codebase.data_utils.dataprocessors import (
+    DataType,
+    ReturnOptions,
+    SmilesProcessor,
+    _AbsProcessor,
+)
 from aidd_codebase.data_utils.datasets import BasicDataset
+from aidd_codebase.data_utils.tokenizer import Tokenizer
+from aidd_codebase.datamodules.datachoice import DataChoice
+from aidd_codebase.utils.config import _ABCDataClass
 from aidd_codebase.utils.directories import validate_or_create_dir
-from aidd_codebase.utils.typescripts import Tensor
+from aidd_codebase.utils.metacoding import CreditType
 from torch.utils.data import DataLoader
 
 
@@ -27,19 +31,29 @@ class DataArguments(_ABCDataClass):
     batch_size: int = 128
     num_workers: int = 8
     persistent_workers: bool = True
-    
+
     override_prepared_data: bool = False
-    prepared_data_dir: Optional[str] = f"{pathlib.Path(__file__).parent.resolve()}/data/saved"
-    
-    partitions: Dict[str, float] = field(default_factory=lambda: {"train": 0.8, "val": 0.1, "test": 0.1})
+    prepared_data_dir: Optional[
+        str
+    ] = f"{pathlib.Path(__file__).parent.resolve()}/data/saved"
+
+    partitions: Dict[str, float] = field(
+        default_factory=lambda: {"train": 0.8, "val": 0.1, "test": 0.1}
+    )
 
     remove_missing: bool = True
     remove_duplicates: bool = False
     canonicalization: bool = True
     enumeration: int = 0  # 10
-    enumeration_oversample: int = 0 # 15
+    enumeration_oversample: int = 0  # 15
 
-@DataChoice.register_choice(call_name="retrosynthesis_pavel", author="Peter Hartog", github_handle="PeterHartog", credit_type=CreditType.NONE)
+
+@DataChoice.register_choice(
+    call_name="retrosynthesis_pavel",
+    author="Peter Hartog",
+    github_handle="PeterHartog",
+    credit_type=CreditType.NONE,
+)
 class SmilesDataModule(pl.LightningDataModule):
     def __init__(
         self,
@@ -50,7 +64,10 @@ class SmilesDataModule(pl.LightningDataModule):
 
         self.datasplit: Dict[str, pd.DataFrame] = {}
 
-        self.prepared_data_dir = validate_or_create_dir(data_args.prepared_data_dir)
+        if data_args.prepared_data_dir:
+            self.prepared_data_dir = validate_or_create_dir(
+                data_args.prepared_data_dir
+            )
         self.override_prepared_data = data_args.override_prepared_data
 
         self.seed = data_args.seed
@@ -92,8 +109,6 @@ class SmilesDataModule(pl.LightningDataModule):
             constrains=[lambda x: x.applymap(len) <= tokenizer.max_seq_len],
             augmentations=None,
         )
-        
-
 
     def process_data(
         self, data: pd.DataFrame, data_processor: _AbsProcessor
@@ -139,22 +154,25 @@ class SmilesDataModule(pl.LightningDataModule):
 
     def prepare_data(self, **kwargs) -> None:
         print("Starting input data download...")
-        url = 'https://raw.githubusercontent.com/bigchem/retrosynthesis/master/data/retrosynthesis-all.smi'
+        url = (
+            "https://raw.githubusercontent.com/bigchem/"
+            + "retrosynthesis/master/data/retrosynthesis-all.smi"
+        )
         reactions = pd.read_csv(url, header=None, names=["reaction"])
         reactions = reactions.applymap(lambda x: x.split(">>"))
-        reactions = pd.DataFrame(reactions["reaction"].to_list(), columns=['product', 'reactants'])
-        
+        reactions = pd.DataFrame(
+            reactions["reaction"].to_list(), columns=["product", "reactants"]
+        )
+
         self.input = reactions.loc[:, ["product"]]
         print(self.input.head())
         self.input = self.process_data(self.input, self.input_processor)
-        
+
         self.target = reactions.loc[:, ["reactants"]]
         print(self.target.head())
         self.output = self.process_data(self.target, self.output_processor)
-        
-        self.split_data(
-            self.input, self.output, partitions=self.partitions
-        )
+
+        self.split_data(self.input, self.output, partitions=self.partitions)
 
     def save_prepared_data(self, data: pd.DataFrame, stage: str) -> None:
         input = data.loc[:, (slice(None), "input")].droplevel(level=1, axis=1)

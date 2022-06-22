@@ -14,6 +14,7 @@ class Singleton:
             cls._instance = super().__new__(cls, *args, **kwargs)
         return cls._instance
 
+
 class Borg:
     _dict = None
 
@@ -24,6 +25,7 @@ class Borg:
         else:
             obj.__dict__ = cls._dict
         return obj
+
 
 class CreditType(Enum):
     REFERENCE = auto()
@@ -186,5 +188,7 @@ class DictChoiceFactory:
     ) -> None:
         creditations = cls.accreditation.return_accreditations()
         for key, value in creditations.items():
-            print(f"Object {key}: Author - {value[0][0]}, Github - {value[0][1]}, "
-            + f"Info - {value[0][2]}\n\t Credit Type {value[1]}")
+            print(
+                f"Object {key}: Author - {value[0][0]}, Github - {value[0][1]}"
+                + f", Info - {value[0][2]}\n\t Credit Type {value[1]}"
+            )

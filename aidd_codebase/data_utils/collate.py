@@ -1,9 +1,8 @@
 from typing import List, Optional, Tuple
 
 import torch
-from torch.nn.utils.rnn import pad_sequence
-
 from aidd_codebase.utils.typescripts import Tensor
+from torch.nn.utils.rnn import pad_sequence
 
 
 class Collate:
@@ -34,4 +33,3 @@ class Collate:
         """
         src_batch, tgt_batch = zip(*batch)
         return torch.t(torch.stack(src_batch)), torch.t(torch.stack(tgt_batch))
-

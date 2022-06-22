@@ -1,8 +1,8 @@
+from dataclasses import dataclass
 from typing import Optional
 
-from dataclasses import dataclass
-import torch.nn as nn
 import pytorch_lightning as pl
+import torch.nn as nn
 
 from ..utils.config import _ABCDataClass
 from ..utils.metacoding import CreditType
@@ -26,12 +26,14 @@ class EncoderArguments(_ABCDataClass):
     max_seq_len: Optional[int] = None
 
 
-@ModelChoice.register_choice(call_name="pl_encoder", author="Peter Hartog", github_handle="PeterHartog", credit_type=CreditType.NONE)
+@ModelChoice.register_choice(
+    call_name="pl_encoder",
+    author="Peter Hartog",
+    github_handle="PeterHartog",
+    credit_type=CreditType.NONE,
+)
 class Encoder(pl.LightningModule):
-    def __init__(
-        self,
-        model_args: EncoderArguments
-    ) -> None:
+    def __init__(self, model_args: EncoderArguments) -> None:
         super().__init__()
 
         self.save_hyperparameters()
@@ -44,7 +46,9 @@ class Encoder(pl.LightningModule):
         self.dropout = model_args.dropout
 
         self.positional_encoding = SequencePositionalEncoding(
-            emb_size=model_args.emb_size, dropout=model_args.dropout, maxlen=model_args.max_seq_len
+            emb_size=model_args.emb_size,
+            dropout=model_args.dropout,
+            maxlen=model_args.max_seq_len,
         )
         self.src_tok_emb = TokenEmbedding(
             vocab_size=model_args.src_vocab_size, emb_size=model_args.emb_size
@@ -57,7 +61,7 @@ class Encoder(pl.LightningModule):
             nhead=model_args.num_heads,
             dim_feedforward=model_args.dim_feedforward,
             dropout=model_args.dropout,
-            activation='relu',
+            activation="relu",
         )
 
         if model_args.weight_sharing:
