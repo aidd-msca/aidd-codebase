@@ -172,10 +172,19 @@ class DictChoiceFactory:
             raise ValueError(f"{call_name} is not recognized.")
 
     @classmethod
-    def view_accreditations(
+    def get_accreditations(
         cls,
     ) -> Dict[
         str,
         Tuple[Tuple[Optional[str], Optional[str], Optional[str]], CreditType],
     ]:
         return cls.accreditation.return_accreditations()
+
+    @classmethod
+    def view_accreditations(
+        cls,
+    ) -> None:
+        creditations = cls.accreditation.return_accreditations()
+        for key, value in creditations.items():
+            print(f"Object {key}: Author - {value[0][0]}, Github - {value[0][1]}, "
+            + f"Info - {value[0][2]}\n\t Credit Type {value[1]}")
