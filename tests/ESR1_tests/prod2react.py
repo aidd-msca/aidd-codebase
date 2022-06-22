@@ -93,13 +93,10 @@ def main():
     # Load Model
     model = ModelChoice.get_choice("pl_seq2seq")
     model = model(model_args = model_args)
-    
     param_init = ParameterInitialization(method="xavier")
     model = param_init.initialize_model(model)
-
-    if env_args.LOAD_PREVIOUS:
-        model = torch.load(env_args.MODEL_LOAD_PATH)
-        
+    
+    # Setup Framework
     loss = LossChoice.get_choice("cross_entropy")
     loss = LogitLoss(loss(reduction="mean", ignore_index=tokenizer.pad_idx))
     optimizer = OptimizerChoice.get_choice("adam")
@@ -155,8 +152,8 @@ def main():
     # test model
     trainer.test(model=framework, datamodule=datamodule)
     
-    accreditations = DictChoiceFactory.view_accreditations()
-    print(accreditations)
+    # get accreditation
+    DictChoiceFactory.view_accreditations()
 
 
 # Example: python main.py --DEVICE cuda:0 --NAME my_run
