@@ -46,16 +46,6 @@ class TopNAccuracy:
         return top_n_accuracy
 
 
-class LogitLoss:
-    def __init__(self, function: Any) -> None:
-        self.criterium = function
-
-    def __call__(self, logits: Tensor, tgt_out: Tensor):
-        return self.criterium(
-            logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1)
-        )  # .item()
-
-
 class ModelFramework_old(pl.LightningModule):
     def __init__(
         self,

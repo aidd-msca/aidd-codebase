@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Any
 
 from aidd_codebase.utils.metacoding import DictChoiceFactory
 from aidd_codebase.utils.typescripts import Tensor
@@ -23,6 +24,16 @@ LossChoice.register_prebuilt_choice(
 # LossChoice.register_prebuilt_choice(
 #     call_name="kullback_leibler_recon_div", callable_cls=nn.KLRecDivLoss
 # )
+
+
+class LogitLoss:
+    def __init__(self, function: Any) -> None:
+        self.criterium = function
+
+    def __call__(self, logits: Tensor, tgt_out: Tensor):
+        return self.criterium(
+            logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1)
+        )  # .item()
 
 
 # from https://www.kaggle.com/bigironsphere/loss-function-library-keras-pytorch
