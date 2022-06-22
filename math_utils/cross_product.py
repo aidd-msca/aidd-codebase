@@ -3,7 +3,6 @@ from typing import Optional
 
 import torch
 import torch.nn.functional as F
-
 from aidd_codebase.utils.metacoding import DictChoiceFactory
 from aidd_codebase.utils.typescripts import Tensor
 

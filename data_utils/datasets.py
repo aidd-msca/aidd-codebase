@@ -2,9 +2,8 @@ from typing import List, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from torch.utils.data import Dataset
-
 from aidd_codebase.utils.typescripts import Tensor
+from torch.utils.data import Dataset
 
 
 class _AbsDataset(Dataset):
@@ -68,4 +67,3 @@ class BasicDataset(Dataset):
 
     def __getitem__(self, idx) -> Tuple[pd.DataFrame, pd.DataFrame]:
         return self.input[idx], self.output[idx]
-

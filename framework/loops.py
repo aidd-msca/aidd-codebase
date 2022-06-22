@@ -2,14 +2,17 @@
 from typing import Any
 
 import pytorch_lightning as pl
-
-from aidd_codebase.utils.typescripts import Tensor
 from aidd_codebase.framework.loopchoice import LoopChoice
 from aidd_codebase.utils.metacoding import CreditType
+from aidd_codebase.utils.typescripts import Tensor
 
 
-
-@LoopChoice.register_choice(call_name="pl_seq2seq_loops", author="Peter Hartog", github_handle="PeterHartog", credit_type=CreditType.NONE)
+@LoopChoice.register_choice(
+    call_name="pl_seq2seq_loops",
+    author="Peter Hartog",
+    github_handle="PeterHartog",
+    credit_type=CreditType.NONE,
+)
 class Seq2SeqLoop(pl.LightningModule):
     """Performs the training step, assumed dims [L, B]"""
 

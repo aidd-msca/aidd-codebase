@@ -1,8 +1,8 @@
+from dataclasses import dataclass
 from typing import Optional
 
-import torch.nn as nn
 import pytorch_lightning as pl
-from dataclasses import dataclass
+import torch.nn as nn
 
 from ..utils.config import _ABCDataClass
 from ..utils.metacoding import CreditType
@@ -25,7 +25,13 @@ class DecoderArguments(_ABCDataClass):
     weight_sharing: bool = False
     max_seq_len: Optional[int] = None
 
-@ModelChoice.register_choice(call_name="pl_decoder", author="Peter Hartog", github_handle="PeterHartog", credit_type=CreditType.NONE)
+
+@ModelChoice.register_choice(
+    call_name="pl_decoder",
+    author="Peter Hartog",
+    github_handle="PeterHartog",
+    credit_type=CreditType.NONE,
+)
 class Decoder(pl.LightningModule):
     def __init__(
         self,
@@ -34,7 +40,9 @@ class Decoder(pl.LightningModule):
         super().__init__()
 
         self.positional_encoding = SequencePositionalEncoding(
-            emb_size=model_args.emb_size, dropout=model_args.dropout, maxlen=model_args.max_seq_len
+            emb_size=model_args.emb_size,
+            dropout=model_args.dropout,
+            maxlen=model_args.max_seq_len,
         )
         self.tgt_tok_emb = TokenEmbedding(
             vocab_size=model_args.tgt_vocab_size, emb_size=model_args.emb_size
@@ -45,7 +53,7 @@ class Decoder(pl.LightningModule):
             nhead=model_args.num_heads,
             dim_feedforward=model_args.dim_feedforward,
             dropout=model_args.dropout,
-            activation='relu',
+            activation="relu",
         )
 
         if model_args.weight_sharing:

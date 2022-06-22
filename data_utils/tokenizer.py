@@ -1,12 +1,13 @@
+from dataclasses import dataclass
 from typing import List, Optional
 
 import torch
-from dataclasses import dataclass
-from aidd_codebase.utils.tools import compose
-from aidd_codebase.utils.typescripts import Tensor
 from aidd_codebase.datamodules.datachoice import DataChoice
 from aidd_codebase.utils.config import _ABCDataClass
 from aidd_codebase.utils.metacoding import CreditType
+from aidd_codebase.utils.tools import compose
+from aidd_codebase.utils.typescripts import Tensor
+
 
 @DataChoice.register_arguments(call_name="sequence_tokenizer")
 @dataclass(unsafe_hash=True)
@@ -24,7 +25,13 @@ class TokenArguments(_ABCDataClass):
     )
     max_seq_len: int = 250
 
-@DataChoice.register_choice(call_name="sequence_tokenizer", author="Peter Hartog", github_handle="PeterHartog", credit_type=CreditType.NONE)
+
+@DataChoice.register_choice(
+    call_name="sequence_tokenizer",
+    author="Peter Hartog",
+    github_handle="PeterHartog",
+    credit_type=CreditType.NONE,
+)
 class Tokenizer:
     def __init__(self, token_args: TokenArguments) -> None:
         self.vocab_size = len(token_args.vocab)

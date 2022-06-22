@@ -1,13 +1,12 @@
 import warnings
 from typing import Dict, List, Optional
 
+from aidd_codebase.utils.directories import Directories
 from pytorch_lightning.loggers import (
     MLFlowLogger,
     TensorBoardLogger,
     WandbLogger,
 )
-
-from aidd_codebase.utils.directories import Directories
 
 
 class LoggerPL:

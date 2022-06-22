@@ -1,5 +1,5 @@
-from typing import Optional
 from dataclasses import dataclass
+from typing import Optional
 
 import pytorch_lightning as pl
 import torch
@@ -29,7 +29,12 @@ class Seq2SeqArguments(_ABCDataClass):
     max_seq_len: Optional[int] = None
 
 
-@ModelChoice.register_choice(call_name="pl_seq2seq", author="Peter Hartog", github_handle="PeterHartog", credit_type=CreditType.NONE)
+@ModelChoice.register_choice(
+    call_name="pl_seq2seq",
+    author="Peter Hartog",
+    github_handle="PeterHartog",
+    credit_type=CreditType.NONE,
+)
 class Seq2Seq(pl.LightningModule):
     def __init__(self, model_args: Seq2SeqArguments) -> None:
         super().__init__()
