@@ -16,7 +16,7 @@ from aidd_codebase.data_utils.dataprocessors import (
     _AbsProcessor,
 )
 from aidd_codebase.data_utils.datasets import BasicDataset
-from aidd_codebase.data_utils.tokenizer import Tokenizer
+from aidd_codebase.datamodules.tokenizer import Tokenizer
 from aidd_codebase.datamodules.datachoice import DataChoice
 from aidd_codebase.utils.config import _ABCDataClass
 from aidd_codebase.utils.directories import validate_or_create_dir

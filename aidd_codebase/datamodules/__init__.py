@@ -1,2 +1,2 @@
-import aidd_codebase.data_utils.tokenizer
+import aidd_codebase.datamodules.tokenizer
 import aidd_codebase.datamodules.smiles

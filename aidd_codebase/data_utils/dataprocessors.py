@@ -6,7 +6,7 @@ import pandas as pd
 import torch
 
 from .augmentation import Converter
-from .tokenizer import Tokenizer
+from aidd_codebase.datamodules.tokenizer import Tokenizer
 
 
 class DataType(Enum):

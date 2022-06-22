@@ -8,7 +8,7 @@ import pytorch_lightning as pl
 import torch
 from dataclasses import dataclass, field
 from aidd_codebase.data_utils.augmentation import Enumerator
-from aidd_codebase.data_utils.tokenizer import Tokenizer
+from aidd_codebase.datamodules.tokenizer import Tokenizer
 from aidd_codebase.data_utils.collate import Collate
 from aidd_codebase.utils.config import _ABCDataClass
 from aidd_codebase.datamodules.datachoice import DataChoice
