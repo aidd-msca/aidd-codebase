@@ -19,7 +19,6 @@ class Device:
             self.precision = 32
             self.gpus = None
         elif self.device.startswith("cuda") and torch.cuda.is_available():
-            print("we are here")
             self.torch_device = torch.cuda.device("cuda")
             self.accelerator = "gpu"
 
@@ -39,7 +38,7 @@ class Device:
 
     def display(self) -> None:
         print(f"\nGPU is available: {torch.cuda.is_available()}")
-        return
+
         if torch.cuda.is_available() and self.device.startswith("cuda"):
             with self.torch_device:
                 print(

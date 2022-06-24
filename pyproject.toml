@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aidd-codebase"
-version = "0.1.4"
+version = "0.1.7"
 description = "High-level codebase for deep learning development in drug discovery."
 authors = ["Peter Hartog <peter.hartog@hotmail.nl>", "Emma Svensson <svensson@ml.jku.at>"]
 license = "MIT"
@@ -23,6 +23,8 @@ python = "^3.7"
 
 # A list of all of the optional dependencies, some of which are included in the
 # below `extras`. They can be opted into by apps.
+#pandas = {version = "^??", optional = true}
+#tqdm = { version = "^??", optional = true}
 tensorboard = { version = "^2.6", optional = true }
 wandb = { version = "^0.12.16", optional = true }
 

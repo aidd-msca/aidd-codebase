@@ -153,7 +153,7 @@ class DictChoiceFactory:
     def get_arguments(cls, call_name: str) -> _ABCDataClass:
         return cls.choice_arguments[call_name]
 
-    @abstractclassmethod
+    @classmethod  #@abstractclassmethod
     def get_choice(cls, call_name: str) -> Callable:
         """Returns a choice pointer out of the dict_choice dictionary."""
         cls.accreditation.choice_called(call_name)
