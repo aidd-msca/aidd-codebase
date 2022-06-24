@@ -11,7 +11,7 @@ from aidd_codebase.framework.loggers import PL_Loggers
 from aidd_codebase.framework.loopchoice import LoopChoice
 from aidd_codebase.models.modelchoice import ModelChoice
 from aidd_codebase.models.modules.loss import LossChoice, LogitLoss
-from aidd_codebase.models.optimizers.optimizers import OptimizerChoice
+from aidd_codebase.framework.optimizers import OptimizerChoice
 from aidd_codebase.utils.config import Config, _ABCDataClass
 from aidd_codebase.utils.device import Device
 from aidd_codebase.utils.directories import Directories
