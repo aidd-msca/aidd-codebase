@@ -2,8 +2,8 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import pytorch_lightning as pl
 import torch
-from aidd_codebase.models.metrics.metrics import Metric
-from aidd_codebase.models.optimizers.scheduling import Scheduler
+from aidd_codebase.framework.metrics import Metric
+from aidd_codebase.framework.scheduling import Scheduler
 from aidd_codebase.utils.typescripts import Tensor
 
 from .loggers import LoggerPL

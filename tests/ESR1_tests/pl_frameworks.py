@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-from aidd_codebase.models.metrics.metrics import Metric
+from aidd_codebase.framework.metrics import Metric
 from aidd_codebase.models.seq2seq import Seq2Seq
 from aidd_codebase.utils.typescripts import Tensor
 

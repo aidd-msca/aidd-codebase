@@ -12,16 +12,15 @@ from aidd_codebase.datamodules.datachoice import DataChoice
 from aidd_codebase.framework.framework import ModelFramework
 from aidd_codebase.framework.loggers import PL_Loggers
 from aidd_codebase.framework.loopchoice import LoopChoice
-from aidd_codebase.models.metrics.loss import LossChoice, LogitLoss
+from aidd_codebase.framework.loss import LossChoice, LogitLoss
 from aidd_codebase.models.modelchoice import ModelChoice
-from aidd_codebase.models.optimizers.optimizers import OptimizerChoice
+from aidd_codebase.framework.optimizers import OptimizerChoice
 from aidd_codebase.utils.config import Config, _ABCDataClass
 from aidd_codebase.utils.device import Device
 from aidd_codebase.utils.directories import Directories
 from aidd_codebase.utils.initiator import ParameterInitialization
 from aidd_codebase.utils.metacoding import DictChoiceFactory
 from pytorch_lightning.callbacks import ModelCheckpoint
-import tests.ESR1_tests.datamodule
 
 
 # TODO refactor tokenizer into object with class variables
