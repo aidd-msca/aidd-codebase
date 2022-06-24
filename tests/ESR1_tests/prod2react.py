@@ -13,23 +13,15 @@ from aidd_codebase.datamodules.datachoice import DataChoice
 from aidd_codebase.framework.framework import ModelFramework
 from aidd_codebase.framework.loggers import PL_Loggers
 from aidd_codebase.framework.loopchoice import LoopChoice
-<<<<<<< HEAD
-from aidd_codebase.models.metrics.loss import LogitLoss, LossChoice
-=======
-from aidd_codebase.framework.loss import LossChoice, LogitLoss
->>>>>>> 125f3ab4cb9d5e29869764647320f5bc0d86b1b5
-from aidd_codebase.models.modelchoice import ModelChoice
+from aidd_codebase.framework.loss import LogitLoss, LossChoice
 from aidd_codebase.framework.optimizers import OptimizerChoice
+from aidd_codebase.models.modelchoice import ModelChoice
 from aidd_codebase.utils.config import Config, _ABCDataClass
 from aidd_codebase.utils.device import Device
 from aidd_codebase.utils.directories import Directories
 from aidd_codebase.utils.initiator import ParameterInitialization
 from aidd_codebase.utils.metacoding import DictChoiceFactory
 from pytorch_lightning.callbacks import ModelCheckpoint
-<<<<<<< HEAD
-=======
-
->>>>>>> 125f3ab4cb9d5e29869764647320f5bc0d86b1b5
 
 # TODO refactor tokenizer into object with class variables
 
