@@ -3,6 +3,7 @@
 ![PyPI](https://img.shields.io/pypi/v/aidd-codebase)
 ![PyPI](https://img.shields.io/pypi/pyversions/aidd-codebase)
 ![PyPI](https://img.shields.io/github/license/AIDD-ESR1/AIDD-codebase)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1jlyEd1yxhvFCN82YqEFI82q2n0k_y06F?usp=sharing)
 
 A high-level codebase for deep learning development in drug discovery applications using PyTorch-Lightning.
 
