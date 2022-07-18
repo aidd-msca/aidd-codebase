@@ -1,9 +1,4 @@
-import os
-
-os.environ["CUDA_VISIBLE_DEVICES"] = "6"
-
 import pathlib
-from dataclasses import dataclass
 from typing import Optional
 
 import pytorch_lightning as pl
@@ -12,29 +7,23 @@ from aidd_codebase.datamodules.datachoice import DataChoice
 from aidd_codebase.framework.framework import ModelFramework
 from aidd_codebase.framework.loggers import PL_Loggers
 from aidd_codebase.framework.loopchoice import LoopChoice
-from aidd_codebase.models.metrics.loss import LossChoice, LogitLoss
 from aidd_codebase.models.modelchoice import ModelChoice
-from aidd_codebase.models.optimizers.optimizers import OptimizerChoice
-from aidd_codebase.utils.config import Config, _ABCDataClass
+from aidd_codebase.utils.config import Config
 from aidd_codebase.utils.device import Device
 from aidd_codebase.utils.directories import Directories
-from aidd_codebase.utils.initiator import ParameterInitialization
 from aidd_codebase.utils.metacoding import DictChoiceFactory
 from pytorch_lightning.callbacks import ModelCheckpoint
-import tests.ESR1_tests.datamodule
+
+# os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+
+# class EnvironmentChoice(DictChoiceFactory):
+#     pass
+# @EnvironmentChoice.register_arguments(call_name="ESR1_example")
+# @dataclass(unsafe_hash=True)
 
 
-# TODO refactor tokenizer into object with class variables
-
-
-class EnvironmentChoice(DictChoiceFactory):
-    pass
-
-
-@EnvironmentChoice.register_arguments(call_name="ESR1_example")
-@dataclass(unsafe_hash=True)
-class EnvironmentArguments(_ABCDataClass):
-    NAME: str
+class EnvironmentArguments(Config):
+    NAME: str = "interpretable_encoder"
     DEBUG: bool = True
     HOME_DIR: Optional[str] = str(pathlib.Path(__file__).parent.resolve())
 
@@ -57,30 +46,30 @@ class EnvironmentArguments(_ABCDataClass):
 
 def main():
     dataclasses = {
-        "env": EnvironmentChoice.get_arguments("ESR1_example"),
+        # "env": EnvironmentChoice.get_arguments("ESR1_example"),
         "token": DataChoice.get_arguments("sequence_tokenizer"),
         "data": DataChoice.get_arguments("retrosynthesis_pavel"),
         "model": ModelChoice.get_arguments("pl_seq2seq"),
     }
 
-    config = Config()
+    config = EnvironmentArguments()
     config.dataclass_config_override(data_classes=dataclasses)
-    config.yaml_config_override(f"{config.env['HOME_DIR']}/config.yaml")
+    config.yaml_config_override(f"{config.HOME_DIR}/config.yaml")
     config.print_arguments()
 
-    env_args = config.return_dataclass("env")
+    # token_dict = config.return_dict("token")
     token_args = config.return_dataclass("token")
     data_args = config.return_dataclass("data")
     model_args = config.return_dataclass("model")
 
     # Set seed
-    pl.seed_everything(env_args.SEED)
+    pl.seed_everything(config.SEED)
 
     # Set device
     device = Device(
-        device=env_args.DEVICE,
-        multi_gpu=env_args.MULTI_GPU,
-        precision=env_args.PRECISION,
+        device=config.DEVICE,
+        multi_gpu=config.MULTI_GPU,
+        precision=config.PRECISION,
     )
     device.display()
 
@@ -91,40 +80,27 @@ def main():
     datamodule = DataChoice.get_choice("retrosynthesis_pavel")
     datamodule = datamodule(tokenizer=tokenizer, data_args=data_args)
 
-    # Load Model
-    model = ModelChoice.get_choice("pl_seq2seq")
-    model = model(model_args=model_args)
-
-    param_init = ParameterInitialization(method="xavier")
-    model = param_init.initialize_model(model)
-
     # Setup Framework
-    loss = LossChoice.get_choice("cross_entropy")
-    loss = LogitLoss(loss(reduction="mean", ignore_index=tokenizer.pad_idx))
-    optimizer = OptimizerChoice.get_choice("adam")
-    optimizer = optimizer(
-        model.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9
-    )
     framework = ModelFramework(
-        loss=loss,
+        model="pl_seq2seq",
+        model_args=model_args,
+        loss="cross_entropy",
         metrics=None,
-        optimizer=optimizer,
+        optimizer="adam",
         scheduler=None,
         loggers=None,
+        initialize_model="xavier",
     )
-    framework.set_model(model)
 
     loop = LoopChoice.get_choice("pl_seq2seq_loops")
     framework.set_loop(loop.translation)
 
-    directories = Directories(
-        PROJECT=env_args.NAME, HOME_DIR=env_args.HOME_DIR
-    )
+    directories = Directories(PROJECT=config.NAME, HOME_DIR=config.HOME_DIR)
     pl_loggers = PL_Loggers(
         directories=directories,
-        tensorboard=env_args.LOG_TENSORBOARD,
-        wandb=env_args.LOG_WANDB,
-        mlflow=env_args.LOG_MLFLOW,
+        tensorboard=config.LOG_TENSORBOARD,
+        wandb=config.LOG_WANDB,
+        mlflow=config.LOG_MLFLOW,
     )
     loggers = pl_loggers.return_loggers()
 
@@ -141,8 +117,8 @@ def main():
     )
 
     trainer = pl.Trainer(
-        fast_dev_run=env_args.DEBUG,
-        max_epochs=env_args.NUM_EPOCHS + 1,
+        fast_dev_run=config.DEBUG,
+        max_epochs=config.NUM_EPOCHS + 1,
         accelerator=device.accelerator,
         gpus=device.gpus,
         precision=device.precision,

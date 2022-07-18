@@ -111,6 +111,12 @@ ENV/
 env.bak/
 venv.bak/
 
+# Docker
+Dockerfile
+requirements.txt
+development.txt
+.devcontainer
+
 # Spyder project settings
 .spyderproject
 .spyproject

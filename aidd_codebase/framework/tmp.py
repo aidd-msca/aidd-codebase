@@ -2,12 +2,8 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import pytorch_lightning as pl
 import torch
-from aidd_codebase.models.metrics.loss import LogitLoss, LossChoice
 from aidd_codebase.models.metrics.metrics import Metric
-from aidd_codebase.models.modelchoice import ModelChoice
-from aidd_codebase.models.optimizers.optimizers import OptimizerChoice
 from aidd_codebase.models.optimizers.scheduling import Scheduler
-from aidd_codebase.utils.initiator import ParameterInitialization
 from aidd_codebase.utils.typescripts import Tensor
 
 from .loggers import LoggerPL
@@ -16,38 +12,21 @@ from .loggers import LoggerPL
 class ModelFramework(pl.LightningModule):
     def __init__(
         self,
-        model: str,
-        model_args: Dict,
-        loss: str,
-        optimizer: str,
-        metrics: Optional[List[str]] = None,
-        scheduler: Optional[str] = None,
-        pl_loggers: Optional[List[str]] = None,
-        initialize_model: Optional[str] = None,
+        loss,
+        optimizer,
+        metrics: Optional[List[Metric]] = None,
+        scheduler: Optional[Scheduler] = None,
+        pl_loggers: Optional[List[LoggerPL]] = None,
     ) -> None:
         super().__init__()
 
         # saving parameters
         self.save_hyperparameters()
 
-        # Set Model
-        self.model = ModelChoice.get_choice(model)
-        self.model = self.model(model_args=model_args)
-        if initialize_model:
-            param_init = ParameterInitialization(method=initialize_model)
-            self.model = param_init.initialize_model(self.model)
-
         # setting parameters
-        self.loss = LossChoice.get_choice(loss)
-        self.loss = LogitLoss(self.loss(reduction="mean", ignore_index=0))
-
+        self.loss = loss
         self.metrics = metrics
-
-        self.optimizer = OptimizerChoice.get_choice(optimizer)
-        self.optimizer = self.optimizer(
-            self.model.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9
-        )
-
+        self.optimizer = optimizer
         self.scheduler = scheduler
         self.pl_loggers = pl_loggers
 

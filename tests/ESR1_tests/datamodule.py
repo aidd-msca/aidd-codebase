@@ -16,8 +16,8 @@ from aidd_codebase.data_utils.dataprocessors import (
     _AbsProcessor,
 )
 from aidd_codebase.data_utils.datasets import BasicDataset
-from aidd_codebase.datamodules.tokenizer import Tokenizer
 from aidd_codebase.datamodules.datachoice import DataChoice
+from aidd_codebase.datamodules.tokenizer import Tokenizer
 from aidd_codebase.utils.config import _ABCDataClass
 from aidd_codebase.utils.directories import validate_or_create_dir
 from aidd_codebase.utils.metacoding import CreditType
@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader
 @DataChoice.register_arguments(call_name="retrosynthesis_pavel")
 @dataclass(unsafe_hash=True)
 class DataArguments(_ABCDataClass):
-    seed: int
+    seed: int = 1234
     batch_size: int = 128
     num_workers: int = 8
     persistent_workers: bool = True
