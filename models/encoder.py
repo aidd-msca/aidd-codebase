@@ -36,7 +36,7 @@ class Encoder(pl.LightningModule):
     def __init__(self, model_args: EncoderArguments) -> None:
         super().__init__()
 
-        self.save_hyperparameters()
+        # self.save_hyperparameters()
 
         self.src_vocab_size = model_args.src_vocab_size
         self.num_encoder_layers = model_args.num_encoder_layers

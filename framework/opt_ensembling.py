@@ -20,3 +20,5 @@ class StochasticWeightAveraging:
     - one stores running average of model weights.
     - the other traversing weight space by cyclical learning rate.
     """
+
+    pass

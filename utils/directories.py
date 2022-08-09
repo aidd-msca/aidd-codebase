@@ -8,6 +8,12 @@ def validate_or_create_dir(dir_path: str) -> str:
     return dir_path
 
 
+def validate_or_create_file(file: str) -> str:
+    if not Path(file).is_file():
+        Path(file).touch(exist_ok=True)
+    return file
+
+
 @dataclass
 class Directories:
     """Creates some generic directories for a specific run."""
