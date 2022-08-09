@@ -1,12 +1,11 @@
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from typing import Callable, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 import pandas as pd
 import torch
 
-from .augmentation import Converter
-from aidd_codebase.datamodules.tokenizer import Tokenizer
+from aidd_codebase.data_utils.augmentation import Converter, Enumerator
 
 
 class DataType(Enum):
@@ -22,8 +21,8 @@ class ReturnOptions(Enum):
 
 
 class _AbsProcessor(ABC):  # Should be protocol -> change
-    def __init__(self, type: DataType) -> None:
-        self.type = type
+    def __init__(self) -> None:
+        pass
 
     @abstractmethod
     def load_data(self, data_path: str):
@@ -49,16 +48,25 @@ class _AbsProcessor(ABC):  # Should be protocol -> change
     def transform_data(self, data: pd.DataFrame) -> pd.DataFrame:
         pass
 
-    @abstractmethod
-    def clean_report(self):
-        pass
+    @staticmethod
+    def clean_report(n_original: int, n_cleaned: int, n_missing: int, n_constrained: int) -> None:
+        print("Clean Report:")
+        print(f"\tOriginal: {n_original} datapoints, ", end="")
+        print(f"Current: {n_cleaned}")
+        print(f"\tMissing: {n_missing}")
+        print(f"\tConstrained: {n_constrained}")
 
     @abstractmethod
     def return_data(self):
         pass
+    
+
+class CategoricalProcessor(_AbsProcessor):
+    """Placeholder"""
+    pass
 
 
-class FloatProcessor(_AbsProcessor):
+class NumericalProcessor(_AbsProcessor):
     def __init__(
         self,
         type: DataType,
@@ -84,31 +92,31 @@ class FloatProcessor(_AbsProcessor):
     def set_data(self, data: Union[pd.DataFrame, pd.Series]):
         self.data = data
 
-    def inspect_data(self) -> None:
-        print(self.data.head())
+    def inspect_data(self, data: Union[pd.DataFrame, pd.Series]) -> None:
+        print(data.head())
 
-    def clean_data(self) -> None:
-        self.original_len = len(self.data)
-        self.original_len = len(self.data)
-
-        cleaned_data = self.data.copy()
+    def clean_data(self, data: Union[pd.DataFrame, pd.Series]) -> None:
+        # Original
+        n_original = len(data)
+        cleaned_data = data.copy()
 
         # Missing
         if self.remove_missing:
             cleaned_data = cleaned_data.dropna()
-            self.nmissing = self.original_len - len(cleaned_data)
+            n_missing = n_original - len(cleaned_data)
 
         # Constrains
+        n_constrained = 0
         if self.constrains:
             for constrain in self.constrains:
                 cleaned_data = cleaned_data[constrain(cleaned_data)].dropna()
-        self.nconstrain = (
-            self.original_len - self.nmissing - len(cleaned_data)
-            if self.constrains
-            else 0
-        )
-
+            n_constrained = n_original - n_missing - len(cleaned_data)
+        
+        # Final
+        n_cleaned = len(cleaned_data)
         self.cleaned_data = cleaned_data
+        
+        self.clean_report(n_original, n_cleaned, n_missing, n_constrained)
 
     def transform_data(self, data: pd.DataFrame) -> pd.DataFrame:
         return data.applymap(lambda x: torch.tensor(x))
@@ -118,13 +126,6 @@ class FloatProcessor(_AbsProcessor):
             for augmentation in self.augmentations:
                 data = augmentation(data)
         return data
-
-    def clean_report(self) -> None:
-        print("Clean Report:")
-        print(f"\tOriginal: {self.original_len} datapoints, ", end="")
-        print(f"Current: {len(self.cleaned_data)}")
-        print(f"\tMissing: {self.nmissing}")
-        print(f"\tConstrained: {self.nconstrain}")
 
     def return_data(self) -> pd.DataFrame:
         if self.return_type == ReturnOptions.CLEANED:
@@ -136,24 +137,19 @@ class FloatProcessor(_AbsProcessor):
 class SmilesProcessor(_AbsProcessor):
     def __init__(
         self,
-        type: DataType,
-        return_type: ReturnOptions,
-        tokenizer: Tokenizer,
-        remove_duplicates: bool = True,
         remove_missing: bool = True,
+        remove_duplicates: bool = True,
+        canonicalize_smiles: bool = True,
+        limit_seq_len: Optional[int] = None,
         constrains: Optional[List[Callable]] = None,
         augmentations: Optional[List[Callable]] = None,
     ) -> None:
-        super().__init__(type)
-
-        self.return_type = return_type
-        assert isinstance(
-            return_type, ReturnOptions
-        ), "return_type should be in ReturnOptions class"
-
-        self.tokenizer = tokenizer
-        self.remove_duplicates = remove_duplicates
+        super().__init__()
+        
         self.remove_missing = remove_missing
+        self.remove_duplicates = remove_duplicates
+        self.canonicalize_smiles = canonicalize_smiles
+        self.limit_seq_len = limit_seq_len
         self.constrains = constrains
         self.augmentations = augmentations
 
@@ -169,8 +165,8 @@ class SmilesProcessor(_AbsProcessor):
 
     def clean_data(self) -> pd.DataFrame:
         self.original_len = len(self.data)
-        # canonical_smiles = self.data.applymap(Converter.smile2canonical)
-        canonical_smiles = self.data.copy()
+        canonical_smiles = self.data.copy() if self.canonicalize_smiles else self.data
+        canonical_smiles = canonical_smiles.applymap(Converter.smile2canonical)
 
         # Duplicates
         if self.remove_duplicates:
@@ -189,6 +185,11 @@ class SmilesProcessor(_AbsProcessor):
             self.nmissing = 0
 
         # Constrains
+        if self.limit_seq_len and self.limit_seq_len != 0:
+            canonical_smiles = canonical_smiles[
+                canonical_smiles.applymap(len) <= self.limit_seq_len
+            ].dropna()
+            
         if self.constrains is not None:
             for constrain in self.constrains:
                 canonical_smiles = canonical_smiles[
@@ -229,14 +230,10 @@ class SmilesProcessor(_AbsProcessor):
         print(f"\tConstrained: {self.nconstrain}")
 
     def return_data(self) -> pd.DataFrame:
-        if self.return_type == ReturnOptions.CLEANED:
+        if self.canonicalize_smiles:
             return self.canonical_smiles
-        elif self.return_type == ReturnOptions.Original:
+        else:
             return self.data.loc[self.canonical_smiles.index, :]
-        elif self.return_type == ReturnOptions.Molecule:
-            return self.data.loc[self.canonical_smiles.index, :].applymap(
-                Converter.smile2mol
-            )
 
 
 # ==============

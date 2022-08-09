@@ -1,9 +1,11 @@
+from copy import deepcopy
 from dataclasses import dataclass
-from typing import Optional
+from typing import Dict, Optional
 
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
+from aidd_codebase.models.beamsearch import BeamSearch
 
 from ..utils.config import _ABCDataClass
 from ..utils.metacoding import CreditType
@@ -25,8 +27,11 @@ class Seq2SeqArguments(_ABCDataClass):
     dim_feedforward: int = 512
     dropout: float = 0.1
     weight_sharing: bool = False
-    pad_idx: Optional[int] = None
-    max_seq_len: Optional[int] = None
+    pad_idx: int = 0
+    bos_idx: int = 1
+    eos_idx: int = 2
+    unk_idx: int = 3
+    max_seq_len: int = 252
 
 
 @ModelChoice.register_choice(
@@ -36,16 +41,22 @@ class Seq2SeqArguments(_ABCDataClass):
     credit_type=CreditType.NONE,
 )
 class Seq2Seq(pl.LightningModule):
-    def __init__(self, model_args: Seq2SeqArguments) -> None:
+    def __init__(self, model_args: Dict) -> None:
         super().__init__()
 
-        self.save_hyperparameters()
+        # self.save_hyperparameters()
 
-        self.pad_idx = model_args.pad_idx
+        args = Seq2SeqArguments(**model_args)
 
-        self.encoder = Encoder(model_args=model_args)
-        self.decoder = Decoder(model_args=model_args)
-        self.fc_out = nn.Linear(model_args.emb_size, model_args.tgt_vocab_size)
+        self.max_seq_len = args.max_seq_len
+        self.pad_idx = args.pad_idx
+        self.bos_idx = args.bos_idx
+        self.eos_idx = args.eos_idx
+        self.unk_idx = args.unk_idx
+
+        self.encoder = Encoder(model_args=args)
+        self.decoder = Decoder(model_args=args)
+        self.fc_out = nn.Linear(args.emb_size, args.tgt_vocab_size)
 
     # (ignore mypy error using type: ignore)
     def forward(  # type: ignore
@@ -78,6 +89,30 @@ class Seq2Seq(pl.LightningModule):
         )
         out = self.fc_out(x)
         return out
+
+    def beam_search_predict(
+        self, src: Tensor, alg: str = "greedy", k: int = 1
+    ) -> Tensor:
+        bs = BeamSearch(
+            self.decoder,
+            self.fc_out,
+            self.max_seq_len,
+            self.pad_idx,
+            self.bos_idx,
+            self.eos_idx,
+            self.unk_idx,
+            self.device,
+        )
+
+        src_mask = self.create_src_mask(src)
+        src_padding_mask = (
+            self.create_padding_mask(src, self.pad_idx)
+            if self.pad_idx
+            else None
+        )
+
+        memory = self.encoder(src, src_mask, src_padding_mask)
+        return bs.sample_search(memory, alg=alg, k=k)
 
     def generate_square_subsequent_mask(self, sz: int) -> Tensor:
         """Generates an upper-trianghular matrix of -inf with zeros on diag."""

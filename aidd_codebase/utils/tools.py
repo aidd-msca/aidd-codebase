@@ -1,5 +1,9 @@
 import functools
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, List
+
+
+def omit_from_dict(dict: Dict, omit_keys: List[str]) -> Dict:
+    return {k: v for k, v in dict.items() if k not in omit_keys}
 
 
 def compose(*functions: Callable) -> Callable:

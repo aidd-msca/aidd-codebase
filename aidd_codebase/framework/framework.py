@@ -1,57 +1,53 @@
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 import pytorch_lightning as pl
-import torch
-from aidd_codebase.framework.metrics import Metric
-from aidd_codebase.framework.scheduling import Scheduler
-from aidd_codebase.utils.typescripts import Tensor
+import torch.nn as nn
+from aidd_codebase.framework.optimizers import OptimizerChoice
+from aidd_codebase.framework.tracking import ExperimentTracker
+from aidd_codebase.models.modelchoice import ModelChoice
+from aidd_codebase.utils.config import Config
+from aidd_codebase.utils.initiator import ParameterInitialization
 
-from .loggers import LoggerPL
+# from aidd_codebase.framework.loggers import LoggerPL
+# from aidd_codebase.framework.scheduling import Scheduler
 
 
 class ModelFramework(pl.LightningModule):
     def __init__(
         self,
-        loss,
-        optimizer,
-        metrics: Optional[List[Metric]] = None,
-        scheduler: Optional[Scheduler] = None,
-        pl_loggers: Optional[List[LoggerPL]] = None,
+        config: Config,
+        model: str,
+        loss: str,
+        optimizer: str,
+        metric_list: Optional[List[str]] = None,
+        scheduler: Optional[str] = None,
+        initialize_model: Optional[str] = None,
     ) -> None:
         super().__init__()
 
         # saving parameters
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=["config"])
 
-        # setting parameters
-        self.loss = loss
-        self.metrics = metrics
-        self.optimizer = optimizer
+        # Set Model
+        model_call = ModelChoice.get_choice(model)
+        self.model: Union[nn.Module, pl.LightningModule] = model_call(
+            config.return_dataclass("model").__dict__
+        )
+        if initialize_model:
+            param_init = ParameterInitialization(method=initialize_model)
+            self.model = param_init.initialize_model(self.model)
+
+        optimizer_call = OptimizerChoice.get_choice(optimizer)
+        self.optimizer = optimizer_call(
+            self.model.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9
+        )
+
         self.scheduler = scheduler
-        self.pl_loggers = pl_loggers
 
-        self.metrics_list: Dict[str, Metric] = {}
-
-    def set_model(self, model: pl.LightningModule) -> None:
-        self.model = model
-
-    def set_loop(self, loop: Callable) -> None:
-        self.training_step_imported = loop
-        self.validation_step_imported = loop
-        self.test_step_imported = loop
-
-    def training_step(self, batch: Any, batch_idx: int):
-        return self.training_step_imported(
-            self, batch, batch_idx, stage="train"
-        )
-
-    def validation_step(self, batch: Any, batch_idx: int):
-        return self.validation_step_imported(
-            self, batch, batch_idx, stage="validation"
-        )
-
-    def test_step(self, batch: Any, batch_idx: int):
-        return self.test_step_imported(self, batch, batch_idx, stage="test")
+        # Experiment tracker
+        self.loss_name = loss
+        metrics = [loss] + metric_list if metric_list else [loss]
+        self.tracker = ExperimentTracker(config, metrics)
 
     def forward(self, *args, **kwargs):
         return self.model(*args, **kwargs)
@@ -69,125 +65,95 @@ class ModelFramework(pl.LightningModule):
 
         return optimizer
 
-    def _init_metrics(self, stage: str) -> None:
-        loss_key = self.get_loss_key(stage)
-        self.metrics_list[stage] = {
-            k: Metric()
-            for k in list(
-                [(loss_key, *self.metrics) if self.metrics else loss_key]
+    def import_loop_model(self) -> None:
+        """Checks if the model supplied has the pl loops
+        and sets them if true.
+        """
+        if callable(getattr(self.model, "training_step", None)):
+            self.training_step_imported = self.model.training_step
+        if callable(getattr(self.model, "validation_step", None)):
+            self.training_step_imported = self.model.validation_step
+        if callable(getattr(self.model, "test_step", None)):
+            self.training_step_imported = self.model.test_step
+        if callable(getattr(self.model, "predict_step", None)):
+            self.training_step_imported = self.model.predict_step
+
+    def set_loop(self, loop: Callable, stage: Optional[str] = None) -> None:
+        """Allows you to set the training steps externally"""
+        if not stage:
+            self.training_step_imported = loop
+            self.validation_step_imported = loop
+            self.test_step_imported = loop
+            self.predict_step_imported = loop
+        else:
+            if stage == "train":
+                self.training_step_imported = loop
+            elif stage == "validation":
+                self.validation_step_imported = loop
+            elif stage == "test":
+                self.test_step_imported = loop
+            elif stage == "predict":
+                self.predict_step_imported = loop
+            else:
+                raise ValueError(f"{stage} stage not found")
+
+    def training_step(self, batch: Any, batch_idx: int):
+        self.tracker.init_metrics()
+        return self.training_step_imported(self, batch, batch_idx)
+
+    def validation_step(self, batch: Any, batch_idx: int):
+        self.tracker.init_metrics()
+        return self.validation_step_imported(self, batch, batch_idx)
+
+    def test_step(self, batch: Any, batch_idx: int):
+        self.tracker.init_metrics()
+        return self.test_step_imported(self, batch, batch_idx)
+
+    def predict_step(self, batch: Any, batch_idx: int):
+        return self.predict_step_imported(self, batch, batch_idx)
+
+    def log_batch(self, stage: str) -> None:
+        for key, metric in self.tracker.metrics.items():
+            self.log(
+                f"{stage}/batch/{metric.name}",
+                self.tracker.return_batch_metric(key),
             )
-        }
 
-    def _log_dict(
-        self, dict: Dict, batch_size: Optional[Tensor] = None
-    ) -> None:
-        """Logs everything in a dict."""
-        for key, value in dict.items():
-            self.log(key, value, batch_size=batch_size)
-
-    def _log_metrics(
-        self,
-        name: str,
-        metric: Metric,
-        batch_size: Optional[Tensor] = None,
-    ) -> None:
-        self.log(
-            name,
-            metric.values[-1],
-            batch_size=batch_size,
-        )
-
-    def _log_epoch_metrics(self, metrics: List[Metric]) -> None:
-        if self.pl_loggers:
-            for logger in self.pl_loggers:
-                logger.log_scalar(metrics=metrics, epoch=self.current_epoch)
-
-    def on_train_start(self) -> None:
-        self._init_metrics(stage="train")
-
-    def on_training_epoch_start(self) -> None:
-        """Called before every training epoch."""
-        self._init_metrics(stage="train")
-
-    def on_validation_epoch_start(self) -> None:
-        """Called before every validation epoch."""
-        self._init_metrics(stage="validation")
-
-    def on_test_epoch_start(self) -> None:
-        """Called before every test epoch."""
-        self._init_metrics(stage="test")
+    def log_epoch(self, stage: str) -> None:
+        for key, metric in self.tracker.metrics.items():
+            self.log(
+                f"{stage}/epoch/{metric.name}",
+                self.tracker.return_epoch_metric(key),
+            )
 
     def on_training_batch_end(
-        self,
-        outputs: Any,
-        batch: Any,
-        batch_idx: int,
-        dataloader_idx: int,
+        self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        x, _ = batch
-        batch_size = x.shape[1]
-        print(self.metrics_list)
-        print(self.metrics_list["train"])
-        for name, metric in self.metrics_list["train"].items():
-            self._log_metrics(
-                name,
-                metric,
-                torch.tensor(batch_size, device=self.device),
-            )
+        self.log_batch("train")
+
+    def training_epoch_end(self, training_step_outputs) -> None:
+        self.log_epoch("train")
 
     def on_validation_batch_end(
-        self,
-        outputs: Union[Tensor, Dict[str, Any], None],
-        batch: Any,
-        batch_idx: int,
-        dataloader_idx: int,
+        self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        x, _ = batch
-        batch_size = x.shape[1]
-        for name, metric in self.metrics_list["validation"].items():
-            self._log_metrics(
-                name,
-                metric,
-                torch.tensor(batch_size, device=self.device),
-            )
+        self.log_batch("validation")
+
+    def validation_epoch_end(self, training_step_outputs) -> None:
+        self.log_epoch("validation")
 
     def on_test_batch_end(
-        self,
-        outputs: Union[Tensor, Dict[str, Any], None],
-        batch: Any,
-        batch_idx: int,
-        dataloader_idx: int,
+        self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        x, _ = batch
-        batch_size = x.shape[1]
-        for name, metric in self.metrics_list["test"].items():
-            self._log_metrics(
-                name,
-                metric,
-                torch.tensor(batch_size, device=self.device),
-            )
+        self.log_batch("test")
 
-    def training_epoch_end(self, outputs: List[Union[Tensor, Dict[str, Any]]]):
-        """This function is called after every epoch"""
-        self._log_epoch_metrics(self.metrics_list["train"])
+    def test_epoch_end(self, training_step_outputs) -> None:
+        self.log_epoch("test")
 
-    def validation_epoch_end(
-        self, outputs: List[Union[Tensor, Dict[str, Any]]]
-    ):
-        """This function is called after every epoch"""
-        self._log_epoch_metrics(self.metrics_list["validation"])
+    def on_predict_batch_end(
+        self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
+        self.log_batch("predict")
 
-    def test_epoch_end(self, outputs: List[Union[Tensor, Dict[str, Any]]]):
-        """This function is called after every epoch"""
-        self._log_epoch_metrics(self.metrics_list["test"])
-
-    @staticmethod
-    def get_loss_key(stage: str) -> str:
-        if stage == "train":
-            loss_key = "loss"
-        elif stage == "validation":
-            loss_key = "val_loss"
-        else:
-            loss_key = "test_loss"
-
-        return loss_key
+    def predict_epoch_end(self, training_step_outputs) -> None:
+        self.log_epoch("predict")
