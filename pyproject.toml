@@ -5,8 +5,8 @@ description = "High-level codebase for deep learning development in drug discove
 authors = ["Peter Hartog <peter.hartog@hotmail.nl>", "Emma Svensson <svensson@ml.jku.at>"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/AIDD-ESR1/AIDD-codebase"
-repository = "https://github.com/AIDD-ESR1/AIDD-codebase"
+homepage = "https://github.com/aidd-msca/aidd-codebase"
+repository = "https://github.com/aidd-msca/aidd-codebase"
 keywords = ["aidd", "drug discovery", "deep learning"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
