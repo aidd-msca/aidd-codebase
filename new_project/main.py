@@ -5,6 +5,8 @@ from aidd_codebase.utils.config_checker import ConfigChecker
 from abstract_codebase.registration import RegistryFactory
 import pytorch_lightning as pl
 
+# don't forget to add the imports to the __init__.py file if you wish to use them in the main.py file
+
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg: DictConfig):
     logger, device = setup(cfg)
