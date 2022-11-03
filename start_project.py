@@ -1,7 +1,6 @@
 import sys
 import os 
-import shutil 
-from abstract_codebase.directories import validate_or_create_dir
+import shutil
 
 def start(name: str ="project"):
     # Get the current working directory
@@ -16,12 +15,3 @@ def start(name: str ="project"):
     # Copy the content of 
     # source to destination 
     shutil.copytree(src, dest) 
-
-if __name__ == "__main__":
-    # find name in command line arguments
-    for i in range(1, len(sys.argv)):
-        if sys.argv[i] == "--name":
-            name = sys.argv[i+1]
-            start(name)
-
-    # start()
