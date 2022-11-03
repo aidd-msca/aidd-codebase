@@ -1,1 +1,1 @@
-import aidd_codebase.models.mlp
+import aidd_codebase.models.net_classifier
