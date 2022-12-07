@@ -1,7 +1,7 @@
 import warnings
 from typing import Dict, List, Optional
 
-from aidd_codebase.utils.directories import Directories
+from abstract_codebase.directories import Directories
 from pytorch_lightning.loggers import (
     MLFlowLogger,
     TensorBoardLogger,
@@ -33,9 +33,7 @@ class PL_Loggers:
             self.init_mlflow()
 
     def init_tensorboard(self) -> None:
-        logger = TensorBoardLogger(
-            save_dir=self.dirs.LOG_DIR, name=self.dirs.TIME
-        )
+        logger = TensorBoardLogger(save_dir=self.dirs.LOG_DIR, name=self.dirs.TIME)
         self.loggers["tensorboard"] = logger
 
     def init_wandb(self) -> None:
@@ -47,9 +45,7 @@ class PL_Loggers:
         self.loggers["wandb"] = logger
 
     def init_mlflow(self) -> None:
-        logger = MLFlowLogger(
-            experiment_name=self.dirs.PROJECT, tracking_uri="file:./ml-runs"
-        )
+        logger = MLFlowLogger(experiment_name=self.dirs.PROJECT, tracking_uri="file:./ml-runs")
         self.loggers["mlflow"] = logger
 
     def return_loggers(self) -> Optional[List]:

@@ -8,9 +8,9 @@ from omegaconf import OmegaConf
 
 
 class ConfigChecker:
-    def __init__(self):
+    def __init__(self, conf_path: str = os.path.join(pathlib.Path(__file__).parent.resolve(), "conf")):
         self.cs = ConfigStore.instance()
-        self.conf_path = os.path.join(pathlib.Path(__file__).parent.resolve(), "conf")
+        self.conf_path = conf_path
         self.add_defaults_config()
 
     def _check_file_exists(self, filepath: str) -> None:

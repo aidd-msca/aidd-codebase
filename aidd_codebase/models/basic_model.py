@@ -3,8 +3,8 @@ import torch.nn as nn
 from torch import Tensor
 from torch.nn import Transformer
 
-from models.embedding.embedding import TokenEmbedding
-from models.embedding.positional import SequencePositionalEncoding
+from aidd_codebase.models.embedding.embedding import TokenEmbedding
+from aidd_codebase.models.embedding.positional import SequencePositionalEncoding
 
 
 class Perceptron(torch.nn.Module):
@@ -63,9 +63,7 @@ class Seq2SeqTransformer(nn.Module):
         self.generator = nn.Linear(emb_size, tgt_vocab_size)
         self.src_tok_emb = TokenEmbedding(src_vocab_size, emb_size)
         self.tgt_tok_emb = TokenEmbedding(tgt_vocab_size, emb_size)
-        self.positional_encoding = SequencePositionalEncoding(
-            emb_size, dropout=dropout
-        )
+        self.positional_encoding = SequencePositionalEncoding(emb_size, dropout=dropout)
 
     def forward(
         self,
@@ -92,28 +90,20 @@ class Seq2SeqTransformer(nn.Module):
         return self.generator(outs)
 
     def encode(self, src: Tensor, src_mask: Tensor):
-        return self.transformer.encoder(
-            self.positional_encoding(self.src_tok_emb(src)), src_mask
-        )
+        return self.transformer.encoder(self.positional_encoding(self.src_tok_emb(src)), src_mask)
 
     def decode(self, tgt: Tensor, memory: Tensor, tgt_mask: Tensor):
-        return self.transformer.decoder(
-            self.positional_encoding(self.tgt_tok_emb(tgt)), memory, tgt_mask
-        )
+        return self.transformer.decoder(self.positional_encoding(self.tgt_tok_emb(tgt)), memory, tgt_mask)
 
 
 def generate_square_subsequent_mask(sz: int, device: str) -> Tensor:
     """Generates an upper-trianghular matrix of -inf, with zeros on diag."""
-    return torch.triu(torch.ones(sz, sz) * float("-inf"), diagonal=1).to(
-        device
-    )
+    return torch.triu(torch.ones(sz, sz) * float("-inf"), diagonal=1).to(device)
 
 
 def create_src_mask(src: Tensor, device: str) -> Tensor:
     src_seq_len = src.shape[0]
-    src_mask = torch.zeros((src_seq_len, src_seq_len), device=device).type(
-        torch.bool
-    )
+    src_mask = torch.zeros((src_seq_len, src_seq_len), device=device).type(torch.bool)
     return src_mask
 
 

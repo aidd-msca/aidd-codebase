@@ -1,16 +1,16 @@
 from dataclasses import dataclass
 from typing import Any
+from aidd_codebase.authors import Paula
 
 import torch
-from aidd_codebase.models.modelchoice import ModelChoice
-from aidd_codebase.utils.config import _ABCDataClass
-from aidd_codebase.utils.metacoding import CreditType
+from aidd_codebase.registries import ModelRegistry
+from abstract_codebase.accreditation import CreditType
 from aidd_codebase.utils.typescripts import Tensor
 
 
-@ModelChoice.register_arguments(call_name="beamsearch")
+@ModelRegistry.register_arguments(key="beamsearch")
 @dataclass(unsafe_hash=True)
-class BeamSearchArguments(_ABCDataClass):
+class BeamSearchArguments:
     decoder: Any
     fc_out: Any
     max_seq_len: int = 201
@@ -21,10 +21,9 @@ class BeamSearchArguments(_ABCDataClass):
     unk_idx: int = 3
 
 
-@ModelChoice.register_choice(
-    call_name="beamsearch",
-    author="Paula Torren Peraire",
-    github_handle="PTPeraire",
+@ModelRegistry.register(
+    key="beamsearch",
+    credit=Paula,
     credit_type=CreditType.ACKNOWLEDGEMENT,
 )
 class BeamSearch:
@@ -53,9 +52,7 @@ class BeamSearch:
 
     def generate_square_subsequent_mask(self, sz: int) -> Tensor:
         """Generates an upper-triangular matrix of -inf with zeros on diag."""
-        return torch.triu(
-            torch.ones(sz, sz, device=self.device) * float("-inf"), diagonal=1
-        )
+        return torch.triu(torch.ones(sz, sz, device=self.device) * float("-inf"), diagonal=1)
 
     def create_tgt_mask(self, tgt: Tensor) -> Tensor:
         return self.generate_square_subsequent_mask(tgt.shape[0])
@@ -65,9 +62,7 @@ class BeamSearch:
         return mask
 
     def create_padding_mask(self, tgt: Tensor) -> Tensor:
-        mask = torch.where(
-            (tgt == self.pad_idx) | (tgt == self.eos_idx), True, False
-        )
+        mask = torch.where((tgt == self.pad_idx) | (tgt == self.eos_idx), True, False)
         return mask.transpose(0, 1)
 
     def _step(self, memory, tgt, tgt_mask, tgt_padding_mask):
@@ -86,9 +81,7 @@ class BeamSearch:
 
     def reorder_scores(self, interim_score_, interim_idx_):
         topk = torch.topk(interim_score_, self.k)
-        topk_idx_ = topk.indices.unsqueeze(-1).expand(
-            [topk.indices.shape[0], self.k, 2]
-        )
+        topk_idx_ = topk.indices.unsqueeze(-1).expand([topk.indices.shape[0], self.k, 2])
         topk_idx_ = torch.gather(interim_idx_, 1, topk_idx_)
         return topk.values, topk_idx_
 
@@ -103,18 +96,14 @@ class BeamSearch:
         return k_idx, k_score
 
     def eos_score_mask(self, max_score_k_masked):
-        max_score_k_masked[:, 1:] = -torch.abs(
-            max_score_k_masked[:, 1:]
-        ) * float("inf")
+        max_score_k_masked[:, 1:] = -torch.abs(max_score_k_masked[:, 1:]) * float("inf")
         return max_score_k_masked
 
     def get_max_score_k(self, max_score, eos_padding_mask, k_):
         max_score_k = max_score[:, k_]
         max_score_k = max_score_k.unsqueeze(-1).expand(max_score.shape)
         max_score_k = max_score_k.clone()
-        max_score_k[eos_padding_mask] = self.eos_score_mask(
-            max_score_k[eos_padding_mask]
-        )
+        max_score_k[eos_padding_mask] = self.eos_score_mask(max_score_k[eos_padding_mask])
         return max_score_k
 
     def update_beams(self, beam_tokens, idx, i):
@@ -127,35 +116,18 @@ class BeamSearch:
         return beam_tokens
 
     def _beam_step(self, memory, beam_tokens, i, max_score, batch_size):
-        score = torch.full(
-            (batch_size, self.k),
-            -float("inf"),
-            dtype=torch.float32,
-            device=self.device,  # TODO: initializing with -inf to avoid if else of k = 0; its quite slow so best to optimize
-        )
-        idx = torch.full(
-            (batch_size, self.k, 2),
-            self.pad_idx,
-            dtype=torch.int64,
-            device=self.device,
-        )
-        tgt_mask = torch.triu(
-            torch.ones(i, i, device=self.device) * float("-inf"), diagonal=1
-        )  # TODO: REFACTOR THIS
+        # TODO: initializing with -inf to avoid if else of k = 0; its quite slow so best to optimize
+        score = torch.full((batch_size, self.k), -float("inf"), dtype=torch.float32, device=self.device)
+        idx = torch.full((batch_size, self.k, 2), self.pad_idx, dtype=torch.int64, device=self.device)
+        tgt_mask = torch.triu(torch.ones(i, i, device=self.device) * float("-inf"), diagonal=1)  # TODO: REFACTOR THIS
         for k_ in range(self.k):
             tgt = beam_tokens[k_]
             tgt_padding_mask = self.create_padding_mask(tgt[:i, :])
             eos_padding_mask = self.create_eos_mask(tgt_padding_mask, dim=1)
-            interim_score = torch.empty(score.shape[0], self.k * 2).to(
-                self.device
-            )
-            interim_idx = torch.empty(
-                idx.shape[0], self.k * 2, 2, dtype=torch.int64
-            ).to(self.device)
+            interim_score = torch.empty(score.shape[0], self.k * 2).to(self.device)
+            interim_idx = torch.empty(idx.shape[0], self.k * 2, 2, dtype=torch.int64).to(self.device)
 
-            ll = self._step(
-                memory, tgt[:i, :], tgt_mask, tgt_padding_mask[:, :i]
-            )
+            ll = self._step(memory, tgt[:i, :], tgt_mask, tgt_padding_mask[:, :i])
             ll = ll[-1, :, :]
             k_idx, k_score = self._predict_k(ll, eos_padding_mask, k_)
             max_score_k = self.get_max_score_k(max_score, eos_padding_mask, k_)
@@ -170,9 +142,7 @@ class BeamSearch:
 
     def greedy_search(self, memory: Tensor) -> Tensor:
         batch_size = memory.shape[1]
-        greedy_tokens = torch.full(
-            (self.max_seq_len, batch_size), self.pad_idx, device=self.device
-        )
+        greedy_tokens = torch.full((self.max_seq_len, batch_size), self.pad_idx, device=self.device)
         greedy_tokens[0, :] = self.bos_idx
         for i in range(1, self.max_seq_len - 1):
             tgt_padding_mask = self.create_padding_mask(greedy_tokens[:i, :])
@@ -184,9 +154,7 @@ class BeamSearch:
                 tgt=greedy_tokens[:i, eos_mask],
                 memory=memory[:, eos_mask],
                 tgt_mask=self.create_tgt_mask(greedy_tokens[:i, eos_mask]),
-                tgt_padding_mask=self.create_padding_mask(
-                    greedy_tokens[:i, eos_mask]
-                ),
+                tgt_padding_mask=self.create_padding_mask(greedy_tokens[:i, eos_mask]),
             )
             ll = ll[-1, :, :]
             greedy_tokens[i, eos_mask] = torch.argmax(ll, dim=-1)
@@ -203,9 +171,7 @@ class BeamSearch:
         )
         beam_tokens[:, 0, :] = self.bos_idx
         for i in range(1, self.max_seq_len):
-            beam_tokens, score = self._beam_step(
-                memory, beam_tokens, i, score, batch_size
-            )
+            beam_tokens, score = self._beam_step(memory, beam_tokens, i, score, batch_size)
             eos = torch.where(beam_tokens == self.eos_idx, True, False)
             eos = torch.any(eos, dim=1).to(self.device)
             if torch.all(eos):

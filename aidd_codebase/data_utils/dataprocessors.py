@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from typing import Any, Callable, List, Optional, Union
+from typing import Callable, List, Optional, Union
 
 import pandas as pd
 import torch
-
-from aidd_codebase.data_utils.augmentation import Converter, Enumerator
+from aidd_codebase.data_utils.augmentation import Converter
+from aidd_codebase.utils.tools import compose
 
 
 class DataType(Enum):
@@ -59,28 +59,22 @@ class _AbsProcessor(ABC):  # Should be protocol -> change
     @abstractmethod
     def return_data(self):
         pass
-    
+
 
 class CategoricalProcessor(_AbsProcessor):
     """Placeholder"""
+
     pass
 
 
 class NumericalProcessor(_AbsProcessor):
     def __init__(
         self,
-        type: DataType,
-        return_type: ReturnOptions,
         remove_missing: bool = True,
         constrains: Optional[List[Callable]] = None,
         augmentations: Optional[List[Callable]] = None,
     ) -> None:
-        super().__init__(type)
-
-        self.return_type = return_type
-        assert isinstance(
-            return_type, ReturnOptions
-        ), "return_type should be in ReturnOptions class"
+        super().__init__()
 
         self.remove_missing = remove_missing
         self.constrains = constrains
@@ -92,13 +86,14 @@ class NumericalProcessor(_AbsProcessor):
     def set_data(self, data: Union[pd.DataFrame, pd.Series]):
         self.data = data
 
-    def inspect_data(self, data: Union[pd.DataFrame, pd.Series]) -> None:
-        print(data.head())
+    def inspect_data(self) -> None:
+        print(self.data.head())
+        print("Length breakdown:", self.data.nunique(dropna=False))
 
-    def clean_data(self, data: Union[pd.DataFrame, pd.Series]) -> None:
+    def clean_data(self) -> None:
         # Original
-        n_original = len(data)
-        cleaned_data = data.copy()
+        n_original = len(self.data)
+        cleaned_data = self.data.copy()
 
         # Missing
         if self.remove_missing:
@@ -111,15 +106,15 @@ class NumericalProcessor(_AbsProcessor):
             for constrain in self.constrains:
                 cleaned_data = cleaned_data[constrain(cleaned_data)].dropna()
             n_constrained = n_original - n_missing - len(cleaned_data)
-        
+
         # Final
         n_cleaned = len(cleaned_data)
         self.cleaned_data = cleaned_data
-        
+
         self.clean_report(n_original, n_cleaned, n_missing, n_constrained)
 
     def transform_data(self, data: pd.DataFrame) -> pd.DataFrame:
-        return data.applymap(lambda x: torch.tensor(x))
+        return data.astype(float).applymap(lambda x: torch.tensor(x))
 
     def augment_data(self, data: pd.DataFrame) -> pd.DataFrame:
         if self.augmentations:
@@ -128,9 +123,9 @@ class NumericalProcessor(_AbsProcessor):
         return data
 
     def return_data(self) -> pd.DataFrame:
-        if self.return_type == ReturnOptions.CLEANED:
+        if self.remove_missing:
             return self.cleaned_data
-        elif self.return_type == ReturnOptions.Original:
+        else:
             return self.data.loc[self.cleaned_data.index, :]
 
 
@@ -143,15 +138,17 @@ class SmilesProcessor(_AbsProcessor):
         limit_seq_len: Optional[int] = None,
         constrains: Optional[List[Callable]] = None,
         augmentations: Optional[List[Callable]] = None,
+        transformations: Optional[List[Callable]] = None,
     ) -> None:
         super().__init__()
-        
+
         self.remove_missing = remove_missing
         self.remove_duplicates = remove_duplicates
         self.canonicalize_smiles = canonicalize_smiles
         self.limit_seq_len = limit_seq_len
         self.constrains = constrains
         self.augmentations = augmentations
+        self.transformations = transformations
 
     def load_data(self, data_path: str) -> None:
         self.data = pd.read_csv(data_path, header=None)
@@ -178,36 +175,27 @@ class SmilesProcessor(_AbsProcessor):
         # Missing
         if self.remove_missing:
             canonical_smiles = canonical_smiles.dropna()
-            self.nmissing = (
-                self.original_len - self.nduplicates - len(canonical_smiles)
-            )
+            self.nmissing = self.original_len - self.nduplicates - len(canonical_smiles)
         else:
             self.nmissing = 0
 
         # Constrains
         if self.limit_seq_len and self.limit_seq_len != 0:
-            canonical_smiles = canonical_smiles[
-                canonical_smiles.applymap(len) <= self.limit_seq_len
-            ].dropna()
-            
+            canonical_smiles = canonical_smiles[canonical_smiles.applymap(len) <= self.limit_seq_len].dropna()
+
         if self.constrains is not None:
             for constrain in self.constrains:
-                canonical_smiles = canonical_smiles[
-                    constrain(canonical_smiles)
-                ].dropna()
-            self.nconstrain = (
-                self.original_len
-                - self.nduplicates
-                - self.nmissing
-                - len(canonical_smiles)
-            )
+                canonical_smiles = canonical_smiles[constrain(canonical_smiles)].dropna()
+            self.nconstrain = self.original_len - self.nduplicates - self.nmissing - len(canonical_smiles)
         else:
             self.nconstrain = 0
 
         self.canonical_smiles = canonical_smiles
 
     def transform_data(self, data: pd.DataFrame) -> pd.DataFrame:
-        return data.applymap(lambda x: self.tokenizer.smile_prep(x))
+        if self.transformations:
+            transforms = compose(*(transform for transform in self.transformations))
+        return data.applymap(lambda x: transforms(x))
 
     def augment_data(self, data: pd.DataFrame) -> pd.DataFrame:
         if self.augmentations:
@@ -215,10 +203,7 @@ class SmilesProcessor(_AbsProcessor):
             print(len(data))
             for augmentation in self.augmentations:
                 data = augmentation(data)
-            print(
-                f"\tAugmentation: from {original} datapoints,"
-                + f"to {len(data)} datapoints."
-            )
+            print(f"\tAugmentation: from {original} datapoints," + f"to {len(data)} datapoints.")
         return data
 
     def clean_report(self) -> None:

@@ -9,11 +9,10 @@ class Collate:
     def __init__(self, pad_idx: Optional[int]) -> None:
         self.pad_idx = pad_idx
 
-    def seq_collate_fn(
-        self, batch: Tuple[List[Tensor], List[Tensor]]
-    ) -> Tuple[Tensor, Tensor]:
+    def seq_collate_fn(self, batch: Tuple[List[Tensor], List[Tensor]]) -> Tuple[Tensor, Tensor]:
         """Function to collate data samples into batch tensors"""
-        src_batch, tgt_batch = [], []
+        src_batch: List[Tensor] = []
+        tgt_batch: List[Tensor] = []
         for src, tgt in batch:
             src_sample = src
             tgt_sample = tgt
@@ -25,11 +24,18 @@ class Collate:
         tgt_batch = pad_sequence(tgt_batch, padding_value=self.pad_idx)
         return src_batch, tgt_batch
 
-    def simple_collate_fn(
-        self, batch: Tuple[List[Tensor], List[Tensor]]
-    ) -> Tuple[Tensor, Tensor]:
+    def simple_transposed_collate_fn(self, batch: Tuple[List[Tensor], List[Tensor]]) -> Tuple[Tensor, Tensor]:
+        """Stacks input tensors into source and target tensors.
+        Assumes all tensors of equal length.
+        Transposes tensors
+        """
+        src_batch, tgt_batch = batch
+        return torch.t(torch.stack(src_batch)), torch.t(torch.stack(tgt_batch))
+
+    def simple_collate_fn(self, batch: Tuple[List[Tensor], List[Tensor]]) -> Tuple[Tensor, Tensor]:
         """Stacks input tensors into source and target tensors.
         Assumes all tensors of equal length.
         """
-        src_batch, tgt_batch = zip(*batch)
-        return torch.t(torch.stack(src_batch)), torch.t(torch.stack(tgt_batch))
+        print(batch)
+        src_batch, tgt_batch = batch
+        return torch.stack(src_batch), torch.stack(tgt_batch)

@@ -1,17 +1,9 @@
 import torch.nn as nn
-
-from .attention import AttentionChoice
+from aidd_codebase.models.pytorch.custom_transformer.mha import MultiheadAttention
 
 
 class EncoderBlock(nn.Module):
-    def __init__(
-        self,
-        input_dim,
-        num_heads,
-        dim_feedforward,
-        dropout: float = 0.0,
-        attention_type: str = "multihead_attn",
-    ) -> None:
+    def __init__(self, input_dim, num_heads, dim_feedforward, dropout=0.0):
         """
         Inputs:
             input_dim - Dimensionality of the input
@@ -22,8 +14,7 @@ class EncoderBlock(nn.Module):
         super().__init__()
 
         # Attention layer
-        self.attention = AttentionChoice.get_choice(attention_type)
-        self.attention = self.attention(input_dim, input_dim, num_heads)
+        self.self_attn = MultiheadAttention(input_dim, input_dim, num_heads)
 
         # Two-layer MLP
         self.linear_net = nn.Sequential(
@@ -50,3 +41,22 @@ class EncoderBlock(nn.Module):
         x = self.norm2(x)
 
         return x
+
+
+class TransformerEncoder(nn.Module):
+    def __init__(self, num_layers, **block_args):
+        super().__init__()
+        self.layers = nn.ModuleList([EncoderBlock(**block_args) for _ in range(num_layers)])
+
+    def forward(self, x, mask=None):
+        for layer in self.layers:
+            x = layer(x, mask=mask)
+        return x
+
+    def get_attention_maps(self, x, mask=None):
+        attention_maps = []
+        for layer in self.layers:
+            _, attn_map = layer.self_attn(x, mask=mask, return_attention=True)
+            attention_maps.append(attn_map)
+            x = layer(x)
+        return attention_maps

@@ -1,9 +1,8 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
-from aidd_codebase.framework.metricchoice import MetricChoice
-from aidd_codebase.utils.config import Config
+from aidd_codebase.framework.metrics import MetricsChoice
 from aidd_codebase.utils.typescripts import Tensor
 
 
@@ -28,7 +27,7 @@ class Metric:
         self.last_size = size
 
     def last_update(self) -> float:
-        return self.values[-1] / self.last_size
+        return self.values[-1]
 
     def weighted_average(self) -> float:
         return self.running_total / self.num_updates
@@ -42,13 +41,11 @@ class FrameworkMetric:
         call_type: str = "match",
         **kwargs,
     ) -> None:
-        self.stage = (
-            ["train", "validate", "test", "predict"] if not stage else stage
-        )
+        self.stage = ["train", "validation", "test", "predict"] if not stage else stage
         self.name = name
         self.call_type = call_type
 
-        metric_call = MetricChoice.get_choice(name)
+        metric_call = MetricsChoice.get_choice(name)
         self.metric = metric_call(**kwargs)
 
         self.set_call(call_type)
@@ -59,10 +56,7 @@ class FrameworkMetric:
         elif call_type == "match":
             self.call_method = self.match_call
         else:
-            raise ValueError(
-                "Metric type not found, options are 'logit' and 'match',"
-                + f"got {self.call_type}"
-            )
+            raise ValueError("Metric type not found, options are 'logit' and 'match'," + f"got {self.call_type}")
 
     def __call__(self, prediction: Tensor, target: Tensor):
         return self.call_method(prediction, target)
@@ -72,9 +66,7 @@ class FrameworkMetric:
         raise AssertionError("Call function not changed")
 
     def logit_call(self, logits: Tensor, tgt_out: Tensor):
-        return self.metric(
-            logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1)
-        )
+        return self.metric(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
 
     def match_call(self, pred: Tensor, actual: Tensor):
         return self.metric(pred, actual)
@@ -86,12 +78,9 @@ class ExperimentTracker:
     metric_list: Dict[str, Metric]
     call_types: List[str] = []
 
-    def __init__(self, config: Config, metrics: List[str]) -> None:
-        self.stage = "train"
-        self.metrics = {
-            name: FrameworkMetric(**config.return_dataclass(name).__dict__)
-            for name in metrics
-        }
+    def __init__(self, cfg, metrics: List[str]) -> None:
+        self.set_stage("train")
+        self.metrics = {name: FrameworkMetric(**cfg["loss"]) for name in metrics}
         self.metric_list: Dict[str, Metric] = {}
 
     def set_stage(self, stage: str) -> None:
@@ -100,23 +89,11 @@ class ExperimentTracker:
 
     def init_metrics(self) -> None:
         """Initializes metrics for a stage of the experiment."""
-        self.metric_list = {
-            metric.name: Metric()
-            for metric in self.metrics.values()
-            if self.stage in metric.stage
-        }
-        stage_metrics = {
-            metric.name: metric
-            for metric in self.metrics.values()
-            if self.stage in metric.stage
-        }
-        self.call_types = list(
-            set([metric.call_type for metric in stage_metrics.values()])
-        )
+        self.metric_list = {metric.name: Metric() for metric in self.metrics.values() if self.stage in metric.stage}
+        stage_metrics = {metric.name: metric for metric in self.metrics.values() if self.stage in metric.stage}
+        self.call_types = list(set([metric.call_type for metric in stage_metrics.values()]))
 
-    def update_metric(
-        self, name: str, y_hat: Tensor, y_true: Tensor, size: int
-    ) -> None:
+    def update_metric(self, name: str, y_hat: Tensor, y_true: Tensor, size: int) -> None:
         """Updates metrics after a step of the experiment."""
         self.metric_list[name].update(self.metrics[name](y_hat, y_true), size)
 

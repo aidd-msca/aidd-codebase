@@ -1,11 +1,5 @@
 import torch.nn as nn
 
-from aidd_codebase.utils.metacoding import DictChoiceFactory
-
-
-class AdapterChoice(DictChoiceFactory):
-    pass
-
 
 # class AdapterABC(nn.Module):
 #     def __init__(self) -> None:
