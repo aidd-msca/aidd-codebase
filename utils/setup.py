@@ -19,10 +19,14 @@ def setup(cfg: DictConfig, verbose: bool = True) -> Tuple[logging.Logger, Device
     logging.debug(OmegaConf.to_yaml(cfg))
 
     logging.info("setting seed")
-    pl.seed_everything(cfg.seed)
+    pl.seed_everything(cfg.random_state)
 
     logging.info("setting up device")
-    device = Device(device=cfg.device, multi_gpu=cfg.multi_gpu, precision=cfg.precision,)
+    device = Device(
+        device=cfg.device,
+        multi_gpu=cfg.multi_gpu,
+        precision=cfg.precision,
+    )
 
     if verbose:
         print(OmegaConf.to_yaml(cfg))

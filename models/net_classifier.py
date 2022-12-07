@@ -1,17 +1,18 @@
 from dataclasses import dataclass
 from typing import Any, Dict
+from aidd_codebase.authors import Peter
 
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-from abstract_codebase.accreditation import CreditInfo, CreditType
+from abstract_codebase.accreditation import CreditType
 from aidd_codebase.registries import ModelRegistry
 from aidd_codebase.utils.typescripts import Tensor
 from torch.nn import functional as F
 from torchmetrics.classification.accuracy import Accuracy
 
 
-@ModelRegistry.register_arguments(call_name="net_classifier")
+@ModelRegistry.register_arguments(key="net_classifier")
 @dataclass
 class MLPArguments:
     input_size: int = 1024
@@ -24,7 +25,7 @@ class MLPArguments:
 
 @ModelRegistry.register(
     key="net_classifier",
-    credit=CreditInfo(author="Peter Hartog", github_handle="PeterHartog",),
+    credit=Peter,
     credit_type=CreditType.NONE,
 )
 class NetClassifier(pl.LightningModule):
