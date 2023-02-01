@@ -1,8 +1,8 @@
 import os
 import pathlib
 
-from abstract_codebase.directories import validate_or_create_dir
-from abstract_codebase.registration import RegistryFactory
+from aidd_codebase.utils.directories import validate_or_create_dir
+from aidd_codebase.registries import AIDD
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 
@@ -23,12 +23,14 @@ class ConfigChecker:
         for default in conf.defaults:
             if default != "_self_":
                 for key, value in default.items():
-                    filepath = os.path.join(self.conf_path, key, f"{value}.yaml")
-                    if not os.path.exists(filepath):
-                        self.create_config(key, value)
+                    if not key.startswith("override"):
+                        filepath = os.path.join(self.conf_path, key, f"{value}.yaml")
+                        if not os.path.exists(filepath):
+                            self.create_config(key, value)
 
     def create_config(self, group: str, name: str) -> None:
+        conf = AIDD.get_subclass_arguments(selection={f"{group}registry": name})
         OmegaConf.save(
-            config=RegistryFactory.get_arguments(name),
+            config=conf[f"{group}"],
             f=os.path.join(validate_or_create_dir(os.path.join(self.conf_path, group)), f"{name}.yaml"),
         )

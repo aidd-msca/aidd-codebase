@@ -18,7 +18,7 @@ class Device:
             self.accelerator = "cpu"
             self.precision = 32
             self.gpus = None
-        elif self.device.startswith("cuda") and torch.cuda.is_available():
+        elif self.device.startswith(("cuda", "gpu")) and torch.cuda.is_available():
             self.torch_device = torch.cuda.device("cuda")
             self.accelerator = "gpu"
 
@@ -26,15 +26,16 @@ class Device:
                 self.multi_gpu = False
 
             if ":" in self.device:
-                self.gpus = [
-                    int(i) for i in self.device.split(":")[-1].split(",")
-                ]
+                self.gpus = [int(i) for i in self.device.split(":")[-1].split(",")]
                 if not self.multi_gpu:
                     self.gpus = [self.gpus[0]]
             else:
-                self.gpus = [i for i in range(torch.cuda.current_device())]
                 if not self.multi_gpu:
                     self.gpus = [0]
+                elif self.gpus:
+                    self.gpus = self.gpus
+                else:
+                    self.gpus = [i for i in range(torch.cuda.current_device())]
 
     def display(self) -> None:
         print(f"\nGPU is available: {torch.cuda.is_available()}")

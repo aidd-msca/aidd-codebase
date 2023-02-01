@@ -16,9 +16,7 @@ class _AbsDataset(Dataset):
 
     def __getitem__(
         self, idx: int
-    ) -> Union[
-        Tuple[np.ndarray, np.ndarray], Tuple[Tensor, Tensor], Tuple[pd.DataFrame, pd.DataFrame],
-    ]:
+    ) -> Union[Tuple[np.ndarray, np.ndarray], Tuple[Tensor, Tensor], Tuple[pd.DataFrame, pd.DataFrame]]:
         """Retrieve a tuple of source and target for a specific index."""
         raise NotImplementedError()
 
@@ -32,9 +30,7 @@ class DummyDataset(_AbsDataset):
 
     def __getitem__(
         self, idx
-    ) -> Union[
-        Tuple[np.ndarray, np.ndarray], Tuple[Tensor, Tensor], Tuple[pd.DataFrame, pd.DataFrame],
-    ]:
+    ) -> Union[Tuple[np.ndarray, np.ndarray], Tuple[Tensor, Tensor], Tuple[pd.DataFrame, pd.DataFrame]]:
         inp, out = self.data[idx]
         return inp, out
 

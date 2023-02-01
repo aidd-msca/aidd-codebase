@@ -11,47 +11,34 @@ class Enumerator:
         seed: int,
         oversample: int = 0,
         max_len: Optional[int] = None,
-        keep_original: bool = True,
+        add_canonical: bool = True,
     ) -> None:
-        self.enumerations = enumerations
-        self.oversample = oversample
-        self.max_len = max_len
-        self.keep_original = keep_original
-
         self.seed = seed
 
-    def smiles_enumeration(
-        self,
-        smile: str,
-    ) -> Union[List[str], None]:
+        self.enumerations = enumerations + 1 if add_canonical else enumerations
+        self.samples = enumerations + oversample
+        self.max_len = max_len
+        self.add_canonical = add_canonical
+
+    def smiles_enumeration(self, smile: str) -> Optional[List[str]]:
         try:
-            enum_smiles = Chem.MolToRandomSmilesVect(
-                Chem.MolFromSmiles(smile),
-                self.enumerations + self.oversample,
-                randomSeed=self.seed,
-            )
+            mol = Chem.MolFromSmiles(smile)
+            enum_smiles = Chem.MolToRandomSmilesVect(mol, self.samples, randomSeed=self.seed)
+            if self.add_canonical:
+                canon_smile = Chem.MolToSmiles(
+                    mol, isomericSmiles=True, kekuleSmiles=False, canonical=True, allBondsExplicit=False
+                )
+                unique_enum_smiles = list(set([canon_smile, *enum_smiles]))
+            else:
+                unique_enum_smiles = list(set(*enum_smiles))
+
         except Exception:
             return None
 
-        if self.keep_original:
-            unique_enum_smiles = list(set([smile, *enum_smiles]))
-            max_n = self.enumerations + 1
-        else:
-            unique_enum_smiles = list(set(enum_smiles))
-            max_n = self.enumerations
-
         if self.max_len:
-            unique_enum_smiles = [
-                smile
-                for smile in unique_enum_smiles
-                if len(smile) <= self.max_len
-            ]
+            unique_enum_smiles = [smile for smile in unique_enum_smiles if len(smile) <= self.max_len]
 
-        return (
-            unique_enum_smiles[:max_n]
-            if len(unique_enum_smiles) >= max_n
-            else None
-        )
+        return unique_enum_smiles[: self.enumerations] if len(unique_enum_smiles) >= self.enumerations else None
 
     def dataframe_enumeration(self, data: pd.DataFrame) -> pd.DataFrame:
         data = data.applymap(lambda x: self.smiles_enumeration(x))
@@ -62,7 +49,17 @@ class Enumerator:
 class Converter:
     @staticmethod
     def smile2mol(smile: str) -> Chem:
-        return Chem.MolFromSmiles(smile)
+        try:
+            return Chem.MolFromSmiles(smile)
+        except Exception:
+            return None
+
+    @staticmethod
+    def smile2reaction(smile: str) -> Chem:
+        try:
+            return Chem.rdChemReactions.ReactionFromSmarts(smile, useSmiles=True)
+        except Exception:
+            return None
 
     @staticmethod
     def mol2canonical(mol: Chem) -> Union[str, None]:

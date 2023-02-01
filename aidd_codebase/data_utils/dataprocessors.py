@@ -1,11 +1,18 @@
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from typing import Callable, List, Optional, Union
+from tqdm import tqdm
+import logging
 
+import numpy as np
 import pandas as pd
 import torch
 from aidd_codebase.data_utils.augmentation import Converter
 from aidd_codebase.utils.tools import compose
+
+from rdkit import Chem
+from rdkit.Chem import SaltRemover
+from rdkit.Chem.MolStandardize import rdMolStandardize
 
 
 class DataType(Enum):
@@ -48,13 +55,9 @@ class _AbsProcessor(ABC):  # Should be protocol -> change
     def transform_data(self, data: pd.DataFrame) -> pd.DataFrame:
         pass
 
-    @staticmethod
-    def clean_report(n_original: int, n_cleaned: int, n_missing: int, n_constrained: int) -> None:
-        print("Clean Report:")
-        print(f"\tOriginal: {n_original} datapoints, ", end="")
-        print(f"Current: {n_cleaned}")
-        print(f"\tMissing: {n_missing}")
-        print(f"\tConstrained: {n_constrained}")
+    @abstractmethod
+    def clean_report(self) -> None:
+        pass
 
     @abstractmethod
     def return_data(self):
@@ -111,7 +114,12 @@ class NumericalProcessor(_AbsProcessor):
         n_cleaned = len(cleaned_data)
         self.cleaned_data = cleaned_data
 
-        self.clean_report(n_original, n_cleaned, n_missing, n_constrained)
+        self.cleaned_length = n_cleaned
+        self.original_length = n_original
+        self.missing_length = n_missing
+        self.constrained_length = n_constrained
+
+        # self.clean_report(n_original, n_cleaned, n_missing, n_constrained)
 
     def transform_data(self, data: pd.DataFrame) -> pd.DataFrame:
         return data.astype(float).applymap(lambda x: torch.tensor(x))
@@ -132,7 +140,16 @@ class NumericalProcessor(_AbsProcessor):
 class SmilesProcessor(_AbsProcessor):
     def __init__(
         self,
-        remove_missing: bool = True,
+        return_original: bool = False,
+        verbose: bool = True,
+        logger: Optional[logging.Logger] = None,
+        sanitize: bool = True,
+        remove_salts: bool = True,
+        remove_stereo: bool = True,
+        remove_metal_atoms: bool = False,
+        keep_largest_fragment: bool = True,
+        neutralize_mol: bool = False,
+        standardize_tautomers: bool = True,
         remove_duplicates: bool = True,
         canonicalize_smiles: bool = True,
         limit_seq_len: Optional[int] = None,
@@ -142,13 +159,32 @@ class SmilesProcessor(_AbsProcessor):
     ) -> None:
         super().__init__()
 
-        self.remove_missing = remove_missing
-        self.remove_duplicates = remove_duplicates
+        tqdm.pandas()
+
+        self.return_original = return_original
+        self.verbose = verbose
+        self.logger = logger
+
+        self.sanitize = sanitize
+        self.remove_salts = remove_salts
+        self.remove_stereo = remove_stereo
+        self.remove_metal_atoms = remove_metal_atoms
+        self.keep_largest_fragment = keep_largest_fragment
+        self.neutralize_mol = neutralize_mol
+        self.standardize_tautomers = standardize_tautomers
         self.canonicalize_smiles = canonicalize_smiles
+        self.remove_duplicates = remove_duplicates
         self.limit_seq_len = limit_seq_len
         self.constrains = constrains
+
         self.augmentations = augmentations
         self.transformations = transformations
+
+        self.original_length: Optional[int] = None
+        self.duplicated_length: Optional[int] = None
+        self.constrained_length: Optional[int] = None
+        self.cleaned_length: Optional[int] = None
+        self.augmented_length: Optional[int] = None
 
     def load_data(self, data_path: str) -> None:
         self.data = pd.read_csv(data_path, header=None)
@@ -160,37 +196,141 @@ class SmilesProcessor(_AbsProcessor):
         print(self.data.head())
         print("Length breakdown:", self.data.nunique(dropna=False))
 
+    def _remove_salts(self, mols: pd.DataFrame) -> pd.DataFrame:
+        def __remove_salts(mol):
+            if mol is None:
+                return None
+            try:
+                remover = SaltRemover.SaltRemover()
+                return remover.StripMol(mol)
+            except ValueError:
+                pass
+            return mol
+
+        self.log("Stripping salts...")
+        mols = mols.progress_applymap(__remove_salts)
+        return mols
+
+    def _remove_stereo(self, mols: pd.DataFrame) -> pd.DataFrame:
+        def __remove_stereo(mol):
+            if mol is None:
+                return None
+            try:
+                Chem.RemoveStereochemistry(mol)
+                return mol
+            except ValueError:
+                pass
+            return mol
+
+        self.log("Removing stereochemistry...")
+        mols.progress_applymap(__remove_stereo)
+        return mols
+
+    def _assign_stereo(self, mols: pd.DataFrame) -> pd.DataFrame:
+        def __assign_stereo(mol):
+            if mol is None:
+                return None
+            try:
+                Chem.AssignStereochemistry(mol, force=True, cleanIt=True)
+                return mol
+            except ValueError:
+                pass
+            return mol
+
+        self.log("Assigning stereochemistry...")
+        mols.progress_applymap(__assign_stereo)
+        return mols
+
+    def _remove_metal_atoms(self, mols: pd.DataFrame) -> pd.DataFrame:
+        self.log("Removing metal atoms...")
+        mols = mols.progress_applymap(rdMolStandardize.MetalDisconnector().Disconnect)
+        return mols
+
+    def _keep_largest_fragment(self, mols: pd.DataFrame) -> pd.DataFrame:
+        self.log("Keeping largest fragment...")
+        mols = mols.progress_applymap(rdMolStandardize.FragmentParent)
+        return mols
+
+    def _neutralize_mol(self, mols: pd.DataFrame) -> pd.DataFrame:
+        self.log("Neutralizing molecules...")
+        mols = mols.progress_applymap(rdMolStandardize.Uncharger().uncharge)
+        return mols
+
+    def _tautomers(self, mols: pd.DataFrame) -> pd.DataFrame:
+        self.log("Enumerating tautomers...")
+        mols = mols.progress_applymap(rdMolStandardize.TautomerEnumerator().Canonicalize)
+        return mols
+
     def clean_data(self) -> pd.DataFrame:
-        self.original_len = len(self.data)
-        canonical_smiles = self.data.copy() if self.canonicalize_smiles else self.data
-        canonical_smiles = canonical_smiles.applymap(Converter.smile2canonical)
+        self.original_length = len(self.data)
 
-        # Duplicates
+        self.log("Converting SMILES to molecules...")
+        mols: pd.DataFrame = self.data.copy().progress_applymap(Converter.smile2mol).dropna()
+        # mols: pd.DataFrame = self.data.copy().progress_applymap(Converter.smile2reaction).dropna()
+        # rdChemReactions.ChemicalReaction.Initialize(mols.iloc[0, 0])
+
+        def sanitize(mol):
+            try:
+                Chem.SanitizeMol(mol)
+                mol = Chem.RemoveHs(mol)
+                mol = rdMolStandardize.Normalize(mol)
+                mol = rdMolStandardize.Reionize(mol)
+            except ValueError:
+                return None
+            return mol
+
+        if self.sanitize:
+            self.log("Sanitizing molecules...")
+            mols = mols.progress_applymap(sanitize).dropna()
+
+        if self.remove_salts:
+            mols = self._remove_salts(mols).dropna()
+
+        if self.remove_stereo:
+            mols = self._remove_stereo(mols).dropna()
+        else:
+            mols = self._assign_stereo(mols).dropna()
+            # add mixed data option
+            # check non-smile symbols
+
+        if self.remove_metal_atoms:
+            mols = self._remove_metal_atoms(mols).dropna()
+
+        if self.keep_largest_fragment:
+            mols = self._keep_largest_fragment(mols).dropna()
+
+        if self.neutralize_mol:
+            mols = self._neutralize_mol(mols).dropna()
+
+        if self.standardize_tautomers:
+            mols = self._tautomers(mols).dropna()
+
+        if self.canonicalize_smiles:
+            self.log("Converting molecules to canonical SMILES...")
+            cleaned_smiles: pd.DataFrame = (
+                mols.progress_applymap(Converter.mol2canonical).replace(r"^\s*$", np.nan, regex=True).dropna()
+            )
+        else:
+            self.log("Converting molecules to SMILES...")
+            cleaned_smiles = mols.progress_applymap(Chem.MolToSmiles).replace(r"^\s*$", np.nan, regex=True).dropna()
+        self.cleaned_length = self.original_length - len(cleaned_smiles)
+
         if self.remove_duplicates:
-            canonical_smiles = canonical_smiles.drop_duplicates()
-            self.nduplicates = self.original_len - len(canonical_smiles)
-        else:
-            self.nduplicates = 0
+            self.log("Removing duplicates...")
+            cleaned_smiles = cleaned_smiles.drop_duplicates().dropna()
+            self.duplicated_length = self.original_length - len(cleaned_smiles)
 
-        # Missing
-        if self.remove_missing:
-            canonical_smiles = canonical_smiles.dropna()
-            self.nmissing = self.original_len - self.nduplicates - len(canonical_smiles)
-        else:
-            self.nmissing = 0
-
-        # Constrains
-        if self.limit_seq_len and self.limit_seq_len != 0:
-            canonical_smiles = canonical_smiles[canonical_smiles.applymap(len) <= self.limit_seq_len].dropna()
+        if self.limit_seq_len and self.limit_seq_len > 0:
+            self.log("Removing SMILES with length > {}...".format(self.limit_seq_len))
+            cleaned_smiles = cleaned_smiles[cleaned_smiles.applymap(len) <= self.limit_seq_len].dropna()
 
         if self.constrains is not None:
+            self.log("Applying constrains...")
             for constrain in self.constrains:
-                canonical_smiles = canonical_smiles[constrain(canonical_smiles)].dropna()
-            self.nconstrain = self.original_len - self.nduplicates - self.nmissing - len(canonical_smiles)
-        else:
-            self.nconstrain = 0
+                cleaned_smiles = cleaned_smiles[constrain(cleaned_smiles)].dropna()
+            self.constrained_length = self.original_length - len(cleaned_smiles)
 
-        self.canonical_smiles = canonical_smiles
+        self.cleaned = cleaned_smiles
 
     def transform_data(self, data: pd.DataFrame) -> pd.DataFrame:
         if self.transformations:
@@ -198,27 +338,36 @@ class SmilesProcessor(_AbsProcessor):
         return data.applymap(lambda x: transforms(x))
 
     def augment_data(self, data: pd.DataFrame) -> pd.DataFrame:
-        if self.augmentations:
+        if self.augmentations is not None:
             original = len(data)
-            print(len(data))
             for augmentation in self.augmentations:
                 data = augmentation(data)
-            print(f"\tAugmentation: from {original} datapoints," + f"to {len(data)} datapoints.")
+            self.log(f"\tAugmentation: from {original} datapoints," + f"to {len(data)} datapoints.")
         return data
 
     def clean_report(self) -> None:
-        print("Clean Report:")
-        print(f"\tOriginal: {self.original_len} datapoints, ", end="")
-        print(f"Current: {len(self.canonical_smiles)}")
-        print(f"\tDuplicates: {self.nduplicates}")
-        print(f"\tMissing: {self.nmissing}")
-        print(f"\tConstrained: {self.nconstrain}")
+        self.log("Clean Report:")
+        self.log(f"\tOriginal: {self.original_length} datapoints, Current: {len(self.data)}")
+        self.log(f"\tCleaned: {self.cleaned_length}")
+        self.log(f"\tDuplicates: {self.duplicated_length}")
+        self.log(f"\tConstrained: {self.constrained_length}")
 
     def return_data(self) -> pd.DataFrame:
-        if self.canonicalize_smiles:
-            return self.canonical_smiles
+        if not self.return_original:
+            return self.cleaned
         else:
-            return self.data.loc[self.canonical_smiles.index, :]
+            return self.data.loc[self.cleaned.index, :]
+
+    def __len__(self) -> int:
+        return len(self.cleaned)
+
+    def log(self, msg: str) -> None:
+        if not self.verbose:
+            pass
+        elif self.logger is not None:
+            self.logger.info(msg)
+        else:
+            print(msg)
 
 
 # ==============
@@ -266,3 +415,16 @@ class SmilesProcessor(_AbsProcessor):
 # A report about made changes and the qualitify of current data should be made
 
 # Report all alterations, removals and final statistics of the dataset
+
+
+# params = rdMolStandardize.CleanupParameters(preferOrganic = preferOrganic)
+
+# print("Default acidbaseFile: %s" % params.acidbaseFile)
+# doCanonical: bool = True
+# largestFragmentChooserCountHeavyAtomsOnly: bool = False
+# largestFragmentChooserUseAtomCount: bool = True
+# preferOrganic: bool = True
+# print("Default normalizationsFile: %s" % params.normalizationsFile)
+# print("Default fragmentFile: %s" % params.fragmentFile)
+# print("Default maxRestarts: %s" % params.maxRestarts)
+# print("Default preferOrganic: %s" % params.preferOrganic)

@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from typing import List, Optional, Any
-from abstract_codebase.accreditation import CreditInfo
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from abstract_codebase.registration import RegistryFactory
-from aidd_codebase.utils.typescripts import Tensor
 from torchmetrics import AUROC, R2Score  # , Accuracy, Precision, Recall, F1
+
+from aidd_codebase.registries import AIDD
+from aidd_codebase.utils.typescripts import Tensor
 
 
 @dataclass(unsafe_hash=True)
@@ -17,12 +17,8 @@ class _ABCMetricDataClass:
     call_type: str = "match"
 
 
-class MetricsChoice(RegistryFactory):
-    pass
-
-
 # Registers choices for loss functions of prebuilt loss functions
-@MetricsChoice.register_arguments(key="ce_loss")
+@AIDD.ModuleRegistry.register_arguments(key="ce_loss")
 @dataclass(unsafe_hash=True)
 class CrossEntropyArgs(_ABCMetricDataClass):
     name: str = "ce_loss"
@@ -35,10 +31,10 @@ class CrossEntropyArgs(_ABCMetricDataClass):
     label_smoothing: Optional[float] = 0.0
 
 
-MetricsChoice.register_prebuilt(key="ce_loss", obj=nn.CrossEntropyLoss)
+AIDD.ModuleRegistry.register_prebuilt(key="ce_loss", obj=nn.CrossEntropyLoss)
 
 
-@MetricsChoice.register_arguments(key="mse_loss")
+@AIDD.ModuleRegistry.register_arguments(key="mse_loss")
 @dataclass(unsafe_hash=True)
 class MSEArgs(_ABCMetricDataClass):
     name: str = "mse_loss"
@@ -48,10 +44,10 @@ class MSEArgs(_ABCMetricDataClass):
     reduction: Optional[str] = "mean"
 
 
-MetricsChoice.register_prebuilt(key="mse_loss", obj=nn.MSELoss)
+AIDD.ModuleRegistry.register_prebuilt(key="mse_loss", obj=nn.MSELoss)
 
 
-@MetricsChoice.register_arguments(key="l1_loss")
+@AIDD.ModuleRegistry.register_arguments(key="l1_loss")
 @dataclass(unsafe_hash=True)
 class L1Args(_ABCMetricDataClass):
     name: str = "l1_loss"
@@ -61,10 +57,10 @@ class L1Args(_ABCMetricDataClass):
     reduction: Optional[str] = "mean"
 
 
-MetricsChoice.register_prebuilt(key="l1_loss", obj=nn.L1Loss)
+AIDD.ModuleRegistry.register_prebuilt(key="l1_loss", obj=nn.L1Loss)
 
 
-@MetricsChoice.register_arguments(key="huber_loss")
+@AIDD.ModuleRegistry.register_arguments(key="huber_loss")
 @dataclass(unsafe_hash=True)
 class HuberArgs(_ABCMetricDataClass):
     name: str = "huber_loss"
@@ -73,10 +69,10 @@ class HuberArgs(_ABCMetricDataClass):
     delta: Optional[float] = 1.0
 
 
-MetricsChoice.register_prebuilt(key="huber_loss", obj=nn.HuberLoss)
+AIDD.ModuleRegistry.register_prebuilt(key="huber_loss", obj=nn.HuberLoss)
 
 
-@MetricsChoice.register_arguments(key="nll_loss")
+@AIDD.ModuleRegistry.register_arguments(key="nll_loss")
 @dataclass(unsafe_hash=True)
 class NLLArgs(_ABCMetricDataClass):
     name: str = "nll_loss"
@@ -88,10 +84,10 @@ class NLLArgs(_ABCMetricDataClass):
     reduction: Optional[str] = "mean"
 
 
-MetricsChoice.register_prebuilt(key="nll_loss", obj=nn.NLLLoss)
+AIDD.ModuleRegistry.register_prebuilt(key="nll_loss", obj=nn.NLLLoss)
 
 
-@MetricsChoice.register_arguments(key="kullback_leibler_div_loss")
+@AIDD.ModuleRegistry.register_arguments(key="kullback_leibler_div_loss")
 @dataclass(unsafe_hash=True)
 class KLDivArgs(_ABCMetricDataClass):
     name: str = "kullback_leibler_div_loss"
@@ -103,7 +99,7 @@ class KLDivArgs(_ABCMetricDataClass):
     log_target: bool = False
 
 
-MetricsChoice.register_prebuilt(key="kullback_leibler_div_loss", obj=nn.KLDivLoss)
+AIDD.ModuleRegistry.register_prebuilt(key="kullback_leibler_div_loss", obj=nn.KLDivLoss)
 
 
 # LossChoice.register_prebuilt_choice(
@@ -115,17 +111,17 @@ MetricsChoice.register_prebuilt(key="kullback_leibler_div_loss", obj=nn.KLDivLos
 # )
 
 
-@MetricsChoice.register("poly_loss")
+@AIDD.ModuleRegistry.register("poly_loss")
 class PolyLoss:
     pass
 
 
-@MetricsChoice.register("kl_loss")
+@AIDD.ModuleRegistry.register("kl_loss")
 class KublitsLeibnerLoss:
     pass
 
 
-@MetricsChoice.register_arguments(key="focal_loss")
+@AIDD.ModuleRegistry.register_arguments(key="focal_loss")
 @dataclass(unsafe_hash=True)
 class FocalArgs(_ABCMetricDataClass):
     name: str = "focal_loss"
@@ -135,7 +131,7 @@ class FocalArgs(_ABCMetricDataClass):
     reduction: Optional[str] = "mean"
 
 
-@MetricsChoice.register(
+@AIDD.ModuleRegistry.register(
     key="focal_loss",
     credit=CreditInfo("bigironsphere"),  # type: ignore
     # additional_information="from https://www.kaggle.com/bigironsphere/" + "loss-function-library-keras-pytorch",
@@ -215,7 +211,7 @@ class FocalLoss(nn.Module):
 #         return weighted_loss
 
 
-@MetricsChoice.register_arguments(key="AUC")
+@AIDD.ModuleRegistry.register_arguments(key="AUC")
 @dataclass(unsafe_hash=True)
 class AUCArgs(_ABCMetricDataClass):
     name: str = "AUC"
@@ -231,10 +227,10 @@ class AUCArgs(_ABCMetricDataClass):
     validate_args: bool = True
 
 
-MetricsChoice.register_prebuilt(key="AUC", obj=AUROC)
+AIDD.ModuleRegistry.register_prebuilt(key="AUC", obj=AUROC)
 
 
-@MetricsChoice.register_arguments(key="r_squared")
+@AIDD.ModuleRegistry.register_arguments(key="r_squared")
 @dataclass(unsafe_hash=True)
 class R2Args(_ABCMetricDataClass):
     name: str = "r_squared"
@@ -244,4 +240,4 @@ class R2Args(_ABCMetricDataClass):
     multioutput: str = "uniform_average"
 
 
-MetricsChoice.register_prebuilt(key="r_squared", obj=R2Score)
+AIDD.ModuleRegistry.register_prebuilt(key="r_squared", obj=R2Score)

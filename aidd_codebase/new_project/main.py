@@ -2,19 +2,20 @@ import hydra
 from omegaconf import DictConfig
 from aidd_codebase.utils.setup import setup
 from aidd_codebase.utils.config_checker import ConfigChecker
-from abstract_codebase.registration import RegistryFactory
+from aidd_codebase.registries import AIDD
 import pytorch_lightning as pl
 
 # don't forget to add the imports to the __init__.py file if you wish to use them in the main.py file
 
+
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg: DictConfig):
     logger, device = setup(cfg)
-    
+
     # your code here
     model = None
     datamodule = None
-    
+
     # set up the trainer
     trainer = pl.Trainer(
         fast_dev_run=cfg.debug,
@@ -36,7 +37,8 @@ def main(cfg: DictConfig):
 
     # get accreditation
     logger.info("Getting accreditation")
-    RegistryFactory.view_accreditations()
+    AIDD.view_accreditations()
+
 
 if __name__ == "__main__":
     ConfigChecker()

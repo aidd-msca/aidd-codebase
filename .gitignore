@@ -137,11 +137,20 @@ dmypy.json
 # Visual studio
 *.DSstore
 *.vscode
+*.hydra
+
+# logs
+multirun
+outputs
+wandb
+checkpoints
 
 # Personal Projects
 *data
 *runs
 *logs
-*ESR1
-*train.sh
-*config.yaml
+*checkpoints
+
+# temporary
+aidd_codebase/models
+legacy/

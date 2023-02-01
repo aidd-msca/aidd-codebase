@@ -36,6 +36,5 @@ class Collate:
         """Stacks input tensors into source and target tensors.
         Assumes all tensors of equal length.
         """
-        print(batch)
         src_batch, tgt_batch = batch
         return torch.stack(src_batch), torch.stack(tgt_batch)

@@ -1,0 +1,25 @@
+# config.yaml
+defaults:
+  - _self_
+  #- dataregistry: data_call_name
+  #- modelregistry: model_call_name
+
+# Information
+name: project_name
+version: 0.0.1
+description: "Project description"
+author: "Author Name"
+
+debug: False
+config_setup: False
+random_state: 1234
+
+batch_size: 128
+epochs: 10
+device: gpu
+multi_gpu: False
+gpus:
+  - 1
+  - 2
+precision: 16
+logger: [wandb]

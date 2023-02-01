@@ -1,13 +1,12 @@
-from abstract_codebase.registration import RegistryFactory
+"""This module contains the registries for the AIDD codebase."""
+
+from registry_factory.factory import Factory
 
 
-class ModelRegistry(RegistryFactory):
-    pass
+class AIDD(Factory):
+    DataRegistry = Factory.create_registry(shared=False)
 
+    ModuleRegistry = Factory.create_registry(shared=True)
+    ModelRegistry = Factory.create_registry(shared=True)
 
-class MetricRegistry(RegistryFactory):
-    pass
-
-
-class DataRegistry(RegistryFactory):
-    pass
+    MetricRegistry = Factory.create_registry(shared=False)

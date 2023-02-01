@@ -1,13 +1,10 @@
-from abstract_codebase.registration import RegistryFactory
 from torch import optim
 
-
-class OptimizerChoice(RegistryFactory):
-    pass
+from aidd_codebase.registries import AIDD
 
 
 # Registers choices for loss functions of prebuilt loss functions
-OptimizerChoice.register_prebuilt(key="adam", obj=optim.Adam)
+AIDD.ModuleRegistry.register_prebuilt(key="adam", obj=optim.Adam)
 
 
 # class KarpovOptimizer(optim):

@@ -1,6 +1,7 @@
 import numpy as np
 from torch import optim
 
+from aidd_codebase.registries import AIDD
 
 # class SchedulerProtocol(Protocol):
 #     def get_lr(self) -> float:
@@ -13,11 +14,11 @@ from torch import optim
 class Scheduler:  # optim.lr_sheduler._LRScheduler
     pass
 
-
+@AIDD.ModuleRegistry.register(key="linear_piecewise")
 class LinearPiecewiseScheduler(Scheduler):
     pass
 
-
+@AIDD.ModuleRegistry.register(key="cosine_warmup")
 class CosineWarmupScheduler(Scheduler):
     def __init__(self, optimizer, warmup, max_iters):
         self.warmup = warmup
