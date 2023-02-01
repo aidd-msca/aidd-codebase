@@ -27,37 +27,24 @@ $ pip install aidd-codebase
 
 ## Usage
 
-1. __*Configuration*__: The coding framework has a number of argument dataclasses in the file *arguments.py*. This file contains all standard arguments for each of the models. Because they are dataclasses, you can easily adapt them to your own needs. 
-<br> 
-Does your Seq2Seq adaptation need an extra argument? Import the Seq2SeqArguments from arguments.py, create your own dataclass which inherits it and add your extra argument. <br> <br>
-*It is important to note that the order of supplying arguments to a script goes as follows:* <br>
-- --flags override config.yaml <br>
-- config.yaml overrides default values in arguments.py <br>
-- default values from arguments.py are used when no other values are supplied<br>
-At the end, it stores all arguments in config.yaml
-<br><br>
+The codebase is designed to be used in a modular fashion. The main components are the `DataModule`, `Model`, and `Trainer` classes. The `DataModule` is responsible for loading and preprocessing data, the `Model` is responsible for defining the model architecture, and the `Trainer` is responsible for training the model. The `Trainer` is a subclass of `pytorch_lightning.Trainer` and can be used as such. The `DataModule` and `Model` classes are designed to be used with the `Trainer` class, but can be used independently if desired.
 
-2. __*Use*__: The coding framework has four main parts: <br>
-- utils
-- data_utils
-- models
-- interpretation
+### Starting a new project
+```bash
+$ python -m aidd_codebase.start_project name dir_path
+```
+This will create a new project folder with the following structure:
 
-These parts should be used 
-&nbsp; 
+```
+name
+├── conf
+│   └── config.yaml
+├── src
+└── main.py
+```
 
-3. __*File Setup*__: The setup of the files in the system is best used as followed:<br>
-coding_framework<br> 
-|-- ..<br> 
-ESR X<br> 
-|-- project 1<br> 
-  |-- data<br> 
-    |-- ..<br> 
-  |-- Arguments.py<br> 
-  |-- config.yaml<br> 
-  |-- main.py<br>
-  |-- datamodule.py<br>
-  |-- pl_framework.py<br>
+The `conf` folder contains the configuration file for the project. The `src` folder contains the source code for the project. The `main.py` file is the entry point for the project.
+
 
 ## Contributors
 
@@ -66,5 +53,3 @@ All fellows of the AIDD consortium have contributed to the packaged.
 ## Code of Conduct
 
 Everyone interacting in the codebase, issue trackers, chat rooms, and mailing lists is expected to follow the [PyPA Code of Conduct](https://www.pypa.io/en/latest/code-of-conduct/).
-
- 
