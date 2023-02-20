@@ -113,7 +113,6 @@ venv.bak/
 
 # Docker
 Dockerfile
-requirements.txt
 .devcontainer
 
 # Spyder project settings

@@ -1,0 +1,40 @@
+# --------- pytorch --------- #
+torch>=1.10.0                 # 1.10.1
+torchvision>=0.11.0
+pytorch-lightning==1.9.1      # 1.9.0
+torchmetrics==0.11.0          # 0.11.1
+
+# --------- hydra --------- #
+hydra-core==1.3.1
+hydra-colorlog==1.2.0
+hydra-optuna-sweeper==1.2.0
+registry-factory>=0.4.3
+
+# --------- loggers --------- #
+wandb>=0.12.21
+tensorboard>=2.12.0
+# neptune-client
+# mlflow
+# comet-ml
+
+# --------- data --------- #
+rdkit==2022.9.3
+pandas==1.3.4
+numpy==1.21.4
+scikit-learn==1.0.1
+scipy>=1.10.0
+
+# --------- utils --------- #
+seaborn==0.12.2
+
+
+# --------- others --------- #
+pyrootutils     # standardizing the project root setup
+pre-commit      # hooks for applying linters on commit
+rich            # beautiful text formatting in terminal
+pytest          # tests
+pytest-cov      # coverage
+black           # code formatter
+isort           # imports formatter
+flake8          # linter
+mypy            # type checker
