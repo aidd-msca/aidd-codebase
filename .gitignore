@@ -154,3 +154,4 @@ checkpoints
 # temporary
 aidd_codebase/models
 legacy/
+.pre-commit-config.yaml

@@ -17,7 +17,7 @@ def start(name: str = "project", dest: str = os.getcwd()):
     # Copy the content of
     # source to destination
     shutil.copytree(src, dest)
-    
-    
+
+
 if __name__ == "__main__":
     start(*sys.argv[1:])

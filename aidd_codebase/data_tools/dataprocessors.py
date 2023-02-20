@@ -7,7 +7,7 @@ import logging
 import numpy as np
 import pandas as pd
 import torch
-from aidd_codebase.data_utils.augmentation import Converter
+from aidd_codebase.data_tools.augmentation import Converter
 from aidd_codebase.utils.tools import compose
 
 from rdkit import Chem
