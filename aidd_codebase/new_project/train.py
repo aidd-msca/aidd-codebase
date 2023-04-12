@@ -110,4 +110,5 @@ def main(cfg: DictConfig) -> Optional[float]:
 
 
 if __name__ == "__main__":
+    config_check = utils.ConfigChecker(conf_path="conf")
     main()

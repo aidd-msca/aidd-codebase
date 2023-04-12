@@ -1,14 +1,20 @@
+import os
+import pathlib
 import warnings
 from importlib.util import find_spec
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Dict
 
 import hydra
-from omegaconf import DictConfig
+from hydra.core.config_store import ConfigStore
+from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning import Callback
 from pytorch_lightning.loggers import Logger
 from pytorch_lightning.utilities import rank_zero_only
 
 from aidd_codebase.utils import pylogger, rich_utils
+from aidd_codebase.utils.directories import validate_or_create_full_path
+from aidd_codebase.registries import AIDD
+
 
 log = pylogger.get_pylogger(__name__)
 
@@ -202,3 +208,31 @@ def save_file(path: str, content: str) -> None:
     """Save file in rank zero mode (only on one process in multi-GPU setup)."""
     with open(path, "w+") as file:
         file.write(content)
+
+
+class ConfigChecker:
+    def __init__(self, conf_path: Optional[str] = None):
+        self.cs = ConfigStore.instance()
+        self.conf_path = (
+            conf_path if conf_path is not None else os.path.join(pathlib.Path(__file__).parent.absolute(), "conf")
+        )
+        self.import_config()
+        # self.add_defaults_config()
+
+    def _check_file_exists(self, filepath: str) -> None:
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"File {filepath} does not exist")
+
+    def create_config(self, file_path: str, registry: str, key: str, key_dict: Dict) -> None:
+        try:
+            conf = AIDD.get_arguments(registry, key, key_dict)
+            OmegaConf.save(config=conf, f=validate_or_create_full_path(file_path))
+        except KeyError:
+            pass
+
+    def import_config(self) -> None:
+        for registry_name, registry in AIDD.items():
+            for (key, key_dict) in registry.keys():
+                filename = f"{self.conf_path}/{registry_name}/{key}.yaml"
+                if not os.path.exists(filename):
+                    self.create_config(filename, registry_name, key, key_dict)  # TODO fix multiple keys

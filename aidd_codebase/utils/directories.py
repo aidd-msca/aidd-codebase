@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-__all__ = ["validate_or_create_dir", "validate_or_create_file", "Directories"]
+__all__ = ["validate_or_create_dir", "validate_or_create_file", "validate_or_create_full_path", "Directories"]
 
 
 def validate_or_create_dir(dir_path: str) -> str:
@@ -15,6 +15,13 @@ def validate_or_create_file(file: str) -> str:
     if not Path(file).is_file():
         Path(file).touch(exist_ok=True)
     return file
+
+
+def validate_or_create_full_path(path: str) -> str:
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    if not Path(path).is_file():
+        Path(path).touch(exist_ok=True)
+    return path
 
 
 @dataclass
