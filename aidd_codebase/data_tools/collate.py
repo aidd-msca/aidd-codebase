@@ -1,8 +1,9 @@
 from typing import List, Optional, Tuple
 
 import torch
-from aidd_codebase.utils.typescripts import Tensor
 from torch.nn.utils.rnn import pad_sequence
+
+from aidd_codebase.utils.typescripts import Tensor
 
 
 class Collate:
@@ -20,9 +21,13 @@ class Collate:
             src_batch.append(src_sample)
             tgt_batch.append(tgt_sample)
 
-        src_batch = pad_sequence(src_batch, padding_value=self.pad_idx)
-        tgt_batch = pad_sequence(tgt_batch, padding_value=self.pad_idx)
-        return src_batch, tgt_batch
+        if self.pad_idx is None:
+            return torch.stack(src_batch), torch.stack(tgt_batch)
+
+        else:
+            src_batch = pad_sequence(src_batch, padding_value=self.pad_idx)
+            tgt_batch = pad_sequence(tgt_batch, padding_value=self.pad_idx)
+            return src_batch, tgt_batch
 
     def simple_transposed_collate_fn(self, batch: Tuple[List[Tensor], List[Tensor]]) -> Tuple[Tensor, Tensor]:
         """Stacks input tensors into source and target tensors.

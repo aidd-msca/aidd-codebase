@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional, Any
+from typing import Any, List, Optional
 
 import torch
 import torch.nn as nn
@@ -133,7 +133,7 @@ class FocalArgs(_ABCMetricDataClass):
 
 @AIDD.ModuleRegistry.register(
     key="focal_loss",
-    credit=CreditInfo("bigironsphere"),  # type: ignore
+    credit="bigironsphere",  # type: ignore
     # additional_information="from https://www.kaggle.com/bigironsphere/" + "loss-function-library-keras-pytorch",
 )
 class FocalLoss(nn.Module):

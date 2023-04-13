@@ -2,8 +2,9 @@ from typing import List, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from aidd_codebase.utils.typescripts import Tensor
 from torch.utils.data import Dataset
+
+from aidd_codebase.utils.typescripts import Tensor
 
 
 class _AbsDataset(Dataset):

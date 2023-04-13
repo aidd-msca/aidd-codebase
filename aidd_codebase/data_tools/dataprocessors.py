@@ -1,18 +1,18 @@
+import logging
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from typing import Callable, List, Optional, Union
-from tqdm import tqdm
-import logging
 
 import numpy as np
 import pandas as pd
 import torch
-from aidd_codebase.data_tools.augmentation import Converter
-from aidd_codebase.utils.tools import compose
-
 from rdkit import Chem
 from rdkit.Chem import SaltRemover
 from rdkit.Chem.MolStandardize import rdMolStandardize
+from tqdm import tqdm
+
+from aidd_codebase.data_tools.augmentation import Converter
+from aidd_codebase.utils.tools import compose
 
 
 class DataType(Enum):

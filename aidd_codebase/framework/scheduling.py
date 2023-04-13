@@ -1,5 +1,4 @@
 import numpy as np
-from torch import optim
 
 from aidd_codebase.registries import AIDD
 
@@ -14,9 +13,11 @@ from aidd_codebase.registries import AIDD
 class Scheduler:  # optim.lr_sheduler._LRScheduler
     pass
 
+
 @AIDD.ModuleRegistry.register(key="linear_piecewise")
 class LinearPiecewiseScheduler(Scheduler):
     pass
+
 
 @AIDD.ModuleRegistry.register(key="cosine_warmup")
 class CosineWarmupScheduler(Scheduler):

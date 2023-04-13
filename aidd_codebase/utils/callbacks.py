@@ -1,6 +1,3 @@
-from pytorch_lightning.callbacks import Callback
-
-
 import pickle
 from pathlib import Path
 from typing import Any
@@ -8,11 +5,10 @@ from typing import Any
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
+from pytorch_lightning.callbacks import Callback
 
 
-def save_model(
-    model: nn.Module, name: str, path: str, save_weights: bool = True
-) -> None:
+def save_model(model: nn.Module, name: str, path: str, save_weights: bool = True) -> None:
     Path(path).mkdir(parents=True, exist_ok=True)
     torch.save(model, f"{path}/{name}.pth")
     if save_weights:
@@ -27,9 +23,7 @@ def load_model(path: str) -> nn.Module:
     return torch.load(path)
 
 
-def checkpoint_load(
-    object: pl.LightningModule, checkpoint_path: str
-) -> pl.LightningModule:
+def checkpoint_load(object: pl.LightningModule, checkpoint_path: str) -> pl.LightningModule:
     return object.load_from_checkpoint(checkpoint_path)
 
 
@@ -45,9 +39,7 @@ def pickle_load(file_path: str) -> Any:
 
 
 class CustomSavingCallback(Callback):
-    def __init__(
-        self, model_save_path: str, save_weights: bool = True
-    ) -> None:
+    def __init__(self, model_save_path: str, save_weights: bool = True) -> None:
         super().__init__()
         self.model_save_path = model_save_path
         self.save_weights = save_weights

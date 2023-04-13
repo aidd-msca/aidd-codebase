@@ -2,7 +2,6 @@ from torch import optim
 
 from aidd_codebase.registries import AIDD
 
-
 # Registers choices for loss functions of prebuilt loss functions
 AIDD.ModuleRegistry.register_prebuilt(key="adam", obj=optim.Adam)
 

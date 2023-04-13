@@ -2,7 +2,7 @@ import os
 import pathlib
 import warnings
 from importlib.util import find_spec
-from typing import Callable, List, Optional, Dict
+from typing import Callable, Dict, List, Optional
 
 import hydra
 from hydra.core.config_store import ConfigStore
@@ -11,10 +11,9 @@ from pytorch_lightning import Callback
 from pytorch_lightning.loggers import Logger
 from pytorch_lightning.utilities import rank_zero_only
 
+from aidd_codebase.registries import AIDD
 from aidd_codebase.utils import pylogger, rich_utils
 from aidd_codebase.utils.directories import validate_or_create_full_path
-from aidd_codebase.registries import AIDD
-
 
 log = pylogger.get_pylogger(__name__)
 
@@ -30,10 +29,8 @@ def task_wrapper(task_func: Callable) -> Callable:
     """
 
     def wrap(cfg: DictConfig):
-
         # execute the task
         try:
-
             # apply extra utilities
             extras(cfg)
 
@@ -41,7 +38,6 @@ def task_wrapper(task_func: Callable) -> Callable:
 
         # things to do if exception occurs
         except Exception as ex:
-
             # save exception to `.log` file
             log.exception("")
 
@@ -51,7 +47,6 @@ def task_wrapper(task_func: Callable) -> Callable:
 
         # things to always do after either success or exception
         finally:
-
             # display output dir path in terminal
             log.info(f"Output dir: {cfg.paths.output_dir}")
 
@@ -232,7 +227,7 @@ class ConfigChecker:
 
     def import_config(self) -> None:
         for registry_name, registry in AIDD.items():
-            for (key, key_dict) in registry.keys():
+            for key, key_dict in registry.keys():
                 filename = f"{self.conf_path}/{registry_name}/{key}.yaml"
                 if not os.path.exists(filename):
                     self.create_config(filename, registry_name, key, key_dict)  # TODO fix multiple keys
