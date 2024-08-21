@@ -154,3 +154,4 @@ checkpoints
 aidd_codebase/models
 legacy/
 .pre-commit-config.yaml
+.vscode
