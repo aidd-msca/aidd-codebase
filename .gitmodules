@@ -1,0 +1,51 @@
+[submodule "aidd_codebase/Properties-to-molecules-Inverse-Mapping"]
+	path = aidd_codebase/Properties-to-molecules-Inverse-Mapping
+	url = https://github.com/aidd-msca/Properties-to-molecules-Inverse-Mapping
+[submodule "aidd_codebase/MiDi"]
+	path = aidd_codebase/MiDi
+	url = https://github.com/aidd-msca/MiDi
+[submodule "aidd_codebase/metis"]
+	path = aidd_codebase/metis
+	url = https://github.com/aidd-msca/metis
+[submodule "aidd_codebase/CalibrationStudy"]
+	path = aidd_codebase/CalibrationStudy
+	url = https://github.com/aidd-msca/CalibrationStudy
+[submodule "aidd_codebase/reaction-graph-link-prediction"]
+	path = aidd_codebase/reaction-graph-link-prediction
+	url = https://github.com/aidd-msca/reaction-graph-link-prediction
+[submodule "aidd_codebase/modelsmatter"]
+	path = aidd_codebase/modelsmatter
+	url = https://github.com/aidd-msca/modelsmatter
+[submodule "aidd_codebase/reagent_emb_vis"]
+	path = aidd_codebase/reagent_emb_vis
+	url = https://github.com/aidd-msca/reagent_emb_vis
+[submodule "aidd_codebase/hyper-dti"]
+	path = aidd_codebase/hyper-dti
+	url = https://github.com/aidd-msca/hyper-dti
+[submodule "aidd_codebase/PISA-T"]
+	path = aidd_codebase/PISA-T
+	url = https://github.com/aidd-msca/PISA-T
+[submodule "aidd_codebase/led3score"]
+	path = aidd_codebase/led3score
+	url = https://github.com/aidd-msca/led3score
+[submodule "aidd_codebase/augmented-xai"]
+	path = aidd_codebase/augmented-xai
+	url = https://github.com/aidd-msca/augmented-xai
+[submodule "aidd_codebase/cloome"]
+	path = aidd_codebase/cloome
+	url = https://github.com/aidd-msca/cloome
+[submodule "aidd_codebase/YieldnotYield"]
+	path = aidd_codebase/YieldnotYield
+	url = https://github.com/aidd-msca/YieldnotYield
+[submodule "aidd_codebase/reagents"]
+	path = aidd_codebase/reagents
+	url = https://github.com/aidd-msca/reagents
+[submodule "aidd_codebase/FSL_CP"]
+	path = aidd_codebase/FSL_CP
+	url = https://github.com/aidd-msca/FSL_CP
+[submodule "aidd_codebase/ET-Tox"]
+	path = aidd_codebase/ET-Tox
+	url = https://github.com/aidd-msca/ET-Tox
+[submodule "aidd_codebase/FSL_CP_DataPrep"]
+	path = aidd_codebase/FSL_CP_DataPrep
+	url = https://github.com/aidd-msca/FSL_CP_DataPrep
