@@ -49,3 +49,9 @@
 [submodule "aidd_codebase/FSL_CP_DataPrep"]
 	path = aidd_codebase/FSL_CP_DataPrep
 	url = https://github.com/aidd-msca/FSL_CP_DataPrep
+[submodule "aidd_codebase/eqgat_diff"]
+	path = aidd_codebase/eqgat_diff
+	url = https://github.com/aidd-msca/eqgat_diff
+[submodule "aidd_codebase/PILOT"]
+	path = aidd_codebase/PILOT
+	url = https://github.com/aidd-msca/PILOT
