@@ -55,3 +55,6 @@
 [submodule "aidd_codebase/PILOT"]
 	path = aidd_codebase/PILOT
 	url = https://github.com/aidd-msca/PILOT
+[submodule "aidd_codebase/AQM"]
+	path = aidd_codebase/AQM
+	url = https://github.com/lmedranos/AQM
